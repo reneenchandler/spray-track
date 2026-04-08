@@ -7,8 +7,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Spray Tracker</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&display=swap');
-
   :root {
     --green: #39FF14;
     --amber: #FFB800;
@@ -27,7 +25,7 @@
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'Barlow Condensed', sans-serif;
+    font-family: system-ui, -apple-system, sans-serif;
     height: 100dvh;
     display: flex;
     flex-direction: column;
@@ -46,7 +44,7 @@
     flex-shrink: 0;
   }
   #statusBar .logo {
-    font-family: 'Share Tech Mono', monospace;
+    font-family: 'Courier New', Courier, monospace;
     font-size: 13px;
     color: var(--green);
     letter-spacing: 2px;
@@ -123,7 +121,7 @@
     margin-bottom: 2px;
   }
   .metric-value {
-    font-family: 'Share Tech Mono', monospace;
+    font-family: 'Courier New', Courier, monospace;
     font-size: 22px;
     color: var(--green);
     line-height: 1;
@@ -167,7 +165,7 @@
     cursor: pointer;
   }
   #swathVal {
-    font-family: 'Share Tech Mono', monospace;
+    font-family: 'Courier New', Courier, monospace;
     font-size: 14px;
     color: var(--green);
     min-width: 52px;
@@ -189,7 +187,7 @@
     border-radius: 6px;
     background: transparent;
     color: var(--text);
-    font-family: 'Barlow Condensed', sans-serif;
+    font-family: system-ui, -apple-system, sans-serif;
     font-size: 15px;
     font-weight: 700;
     letter-spacing: 2px;
@@ -234,7 +232,7 @@
     border: 1px solid var(--green);
     border-radius: 4px;
     padding: 6px 10px;
-    font-family: 'Share Tech Mono', monospace;
+    font-family: 'Courier New', Courier, monospace;
     font-size: 12px;
     color: var(--green);
     letter-spacing: 1px;
@@ -267,7 +265,7 @@
     background: rgba(57,255,20,0.15);
     border: 1px solid var(--green);
     color: var(--green);
-    font-family: 'Share Tech Mono', monospace;
+    font-family: 'Courier New', Courier, monospace;
     font-size: 12px;
     letter-spacing: 2px;
     padding: 10px 20px;
@@ -290,10 +288,30 @@
   }
   #compass svg { width: 100%; height: 100%; }
 
+  /* ── FOLLOW BUTTON ── */
+  #followBtn {
+    position: absolute;
+    bottom: 16px; left: 16px;
+    background: rgba(10,15,10,0.85);
+    border: 1px solid var(--green);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11px;
+    color: var(--green);
+    letter-spacing: 1px;
+    z-index: 20;
+    cursor: pointer;
+  }
+  #followBtn.off {
+    border-color: var(--muted);
+    color: var(--muted);
+  }
+
   /* ── SCREEN WAKE LOCK INDICATOR ── */
   #wakeLock {
     position: absolute;
-    bottom: 16px; left: 16px;
+    bottom: 50px; left: 16px;
     font-size: 10px;
     color: var(--muted);
     letter-spacing: 1px;
@@ -316,7 +334,7 @@
   }
   #setupScreen.hidden { display: none; }
   .setup-logo {
-    font-family: 'Barlow Condensed', sans-serif;
+    font-family: system-ui, -apple-system, sans-serif;
     font-size: 52px;
     font-weight: 900;
     color: var(--green);
@@ -325,7 +343,7 @@
     margin-bottom: 4px;
   }
   .setup-sub {
-    font-family: 'Share Tech Mono', monospace;
+    font-family: 'Courier New', Courier, monospace;
     font-size: 11px;
     color: var(--muted);
     letter-spacing: 4px;
@@ -351,7 +369,7 @@
     border: 2px solid var(--border);
     border-radius: 4px;
     color: var(--text);
-    font-family: 'Share Tech Mono', monospace;
+    font-family: 'Courier New', Courier, monospace;
     font-size: 18px;
     padding: 12px 14px;
     outline: none;
@@ -369,7 +387,7 @@
     border: none;
     border-radius: 6px;
     color: #000;
-    font-family: 'Barlow Condensed', sans-serif;
+    font-family: system-ui, -apple-system, sans-serif;
     font-size: 20px;
     font-weight: 900;
     letter-spacing: 4px;
@@ -428,6 +446,7 @@
   <canvas id="mapCanvas"></canvas>
   <div id="passBadge">0 PASSES</div>
   <div id="overlapAlert">⚠ OVERLAP</div>
+  <button id="followBtn" onclick="toggleFollow()">📍 FOLLOWING</button>
   <div id="compass">
     <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="22" cy="22" r="20" stroke="#1e2e1e" stroke-width="2"/>
@@ -495,6 +514,7 @@ let state = {
   origin: null,         // {lat, lon} — map center reference
   scale: 1,             // pixels per meter
   panX: 0, panY: 0,
+  followMode: true,
   lastPos: null,
   wakeLock: null,
   deviceHeading: null
@@ -569,6 +589,12 @@ function onPosition(pos) {
   state.speed = speed ? speed * 2.23694 : 0; // m/s to mph
   if (heading !== null) state.heading = heading;
 
+  // ── AUTO-FOLLOW: keep position centered ──
+  if (state.followMode) {
+    state.panX = -mx * state.scale;
+    state.panY = my * state.scale;
+  }
+
   document.getElementById('mSpeed').textContent = state.speed.toFixed(1);
   if (state.heading !== null) {
     document.getElementById('mHeading').textContent = Math.round(state.heading);
@@ -585,8 +611,13 @@ function onPosition(pos) {
 
 function onGPSError(err) {
   document.getElementById('gpsDot').className = 'gps-dot';
-  document.getElementById('gpsText').textContent = 'NO GPS';
-  showToast('GPS ERROR: ' + err.message.toUpperCase());
+  if (err.code === 1) {
+    document.getElementById('gpsText').textContent = 'PERMISSION DENIED';
+    showToast('ENABLE LOCATION IN SETTINGS');
+  } else {
+    document.getElementById('gpsText').textContent = 'NO GPS';
+    showToast('GPS ERROR — GO OUTSIDE');
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -655,6 +686,10 @@ function onTouchMove(e) {
     state.panX += dx * window.devicePixelRatio;
     state.panY += dy * window.devicePixelRatio;
     lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    // User is manually panning — disable follow
+    state.followMode = false;
+    document.getElementById('followBtn').classList.add('off');
+    document.getElementById('followBtn').textContent = '📍 FOLLOW';
     renderMap();
   } else if (e.touches.length === 2 && pinchDist0) {
     const d = getTouchDist(e.touches);
@@ -916,7 +951,27 @@ function updatePassBadge() {
 // ══════════════════════════════════════════════
 // HELPERS
 // ══════════════════════════════════════════════
-function feetToMeters(ft) { return ft * 0.3048; }
+function toggleFollow() {
+  state.followMode = !state.followMode;
+  const btn = document.getElementById('followBtn');
+  if (state.followMode) {
+    btn.classList.remove('off');
+    btn.textContent = '📍 FOLLOWING';
+    showToast('FOLLOW MODE ON');
+    // Snap back to current position immediately
+    if (state.lastPos) {
+      state.panX = -state.lastPos.mx * state.scale;
+      state.panY = state.lastPos.my * state.scale;
+      renderMap();
+    }
+  } else {
+    btn.classList.add('off');
+    btn.textContent = '📍 FOLLOW';
+    showToast('FOLLOW MODE OFF');
+  }
+}
+
+
 
 function showToast(msg) {
   const t = document.getElementById('toast');
