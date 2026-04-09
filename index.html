@@ -93,7 +93,7 @@
     pointer-events: none;
   }
   #followBtn {
-    position: absolute; bottom:16px; left:16px;
+    position: absolute; top:12px; left:12px;
     background: rgba(10,15,10,0.85);
     border: 2px solid var(--green);
     border-radius: 4px;
@@ -567,17 +567,18 @@ function renderMap() {
     }
   }
 
-  // Scale bar — 500 ft
-  const barM = 500 * 0.3048;
-  const barPx = barM * sc;
-  const bx = 20 * dpr, by = H - 48 * dpr;
-  ctx.fillStyle = 'rgba(57,255,20,0.75)';
-  ctx.fillRect(bx, by, barPx, 3 * dpr);
-  ctx.fillRect(bx, by - 5*dpr, 2*dpr, 12*dpr);
-  ctx.fillRect(bx + barPx - 2*dpr, by - 5*dpr, 2*dpr, 12*dpr);
-  ctx.font = (12 * dpr) + 'px "Courier New"';
-  ctx.fillText('500 ft', bx, by - 9 * dpr);
-}
+  // Scale bar — only show when GPS is active
+  if (S.gpsReady) {
+    const barM = 500 * 0.3048;
+    const barPx = barM * sc;
+    const bx = W - barPx - 60 * dpr, by = H - 48 * dpr;
+    ctx.fillStyle = 'rgba(57,255,20,0.75)';
+    ctx.fillRect(bx, by, barPx, 3 * dpr);
+    ctx.fillRect(bx, by - 5*dpr, 2*dpr, 12*dpr);
+    ctx.fillRect(bx + barPx - 2*dpr, by - 5*dpr, 2*dpr, 12*dpr);
+    ctx.font = (12 * dpr) + 'px "Courier New"';
+    ctx.fillText('500 ft', bx, by - 9 * dpr);
+  }
 
 function drawPass(pts, swathM, sc, wx, wy, isActive) {
   if (pts.length < 2) return;
