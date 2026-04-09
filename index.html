@@ -776,8 +776,7 @@ function onOrientation(e) {
 document.getElementById('swathSlider').addEventListener('input', function() {
   S.swathFt = parseFloat(this.value);
   document.getElementById('swathVal').textContent = this.value + ' ft';
-  updateArea();
-  renderMap();
+  if (canvas) { updateArea(); renderMap(); }
 });
 </script>
 </body>
