@@ -5,779 +5,706 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Spray Tracker</title>
+<title>Spray Track</title>
 <style>
-  :root {
-    --green: #39FF14;
-    --amber: #FFB800;
-    --red: #FF3B30;
-    --bg: #0a0f0a;
-    --panel: #111811;
-    --border: #1e2e1e;
-    --text: #c8e6c8;
-    --muted: #4a6a4a;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: system-ui, -apple-system, sans-serif;
-    height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    user-select: none;
-  }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
-  /* STATUS BAR */
-  #statusBar {
-    background: var(--panel);
-    border-bottom: 2px solid var(--border);
-    padding: 8px 12px 6px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-shrink: 0;
-  }
-  #statusBar .logo {
-    font-family: 'Courier New', monospace;
-    font-size: 13px;
-    color: var(--green);
-    letter-spacing: 2px;
-    font-weight: bold;
-  }
-  #gpsStatus {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .gps-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--muted);
-  }
-  .gps-dot.active { background: var(--green); animation: pulse 1.5s infinite; }
-  .gps-dot.searching { background: var(--amber); animation: pulse 0.8s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+:root {
+  --green: #39FF14;
+  --red: #FF3B30;
+  --amber: #FFB800;
+  --bg: #0a0f0a;
+  --panel: #111811;
+  --border: #1e2e1e;
+  --text: #c8e6c8;
+  --muted: #4a6a4a;
+}
 
-  /* MAP */
-  #mapWrap {
-    flex: 1;
-    position: relative;
-    overflow: hidden;
-    background: #0d150d;
-    background-image:
-      linear-gradient(rgba(57,255,20,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(57,255,20,0.04) 1px, transparent 1px);
-    background-size: 40px 40px;
-  }
-  canvas {
-    position: absolute; top:0; left:0;
-    width:100%; height:100%;
-    touch-action: none;
-  }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, sans-serif;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+}
 
-  /* MAP OVERLAYS */
-  #passBadge {
-    position: absolute; top:12px; right:12px;
-    background: rgba(10,15,10,0.85);
-    border: 1px solid var(--green);
-    border-radius: 4px;
-    padding: 6px 10px;
-    font-family: 'Courier New', monospace;
-    font-size: 12px; color: var(--green);
-    letter-spacing: 1px; z-index: 20;
-    pointer-events: none;
-  }
-  #followBtn {
-    position: absolute; top:12px; left:12px;
-    background: rgba(10,15,10,0.85);
-    border: 2px solid var(--green);
-    border-radius: 4px;
-    padding: 10px 14px;
-    font-family: 'Courier New', monospace;
-    font-size: 12px; color: var(--green);
-    letter-spacing: 1px; z-index: 20;
-    cursor: pointer;
-    font-weight: bold;
-  }
-  #followBtn.off { border-color: var(--muted); color: var(--muted); }
-  #compass {
-    position: absolute; bottom:16px; right:16px;
-    width:44px; height:44px; z-index:20; pointer-events:none;
-  }
+/* SETUP */
+#setup {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  gap: 16px;
+}
+#setup.gone { display: none; }
+#setup h1 {
+  font-size: 48px;
+  font-weight: 900;
+  color: var(--green);
+  line-height: 1;
+  text-align: center;
+}
+#setup p {
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: var(--muted);
+  text-align: center;
+}
+.sfield { width: 100%; max-width: 300px; }
+.sfield label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.sfield input, .sfield select {
+  width: 100%;
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 20px;
+  padding: 12px 14px;
+  outline: none;
+  -webkit-appearance: none;
+  font-family: 'Courier New', monospace;
+}
+.sfield input:focus, .sfield select:focus { border-color: var(--green); }
+#goBtn {
+  width: 100%;
+  max-width: 300px;
+  background: var(--green);
+  border: none;
+  border-radius: 8px;
+  color: #000;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  padding: 18px;
+  cursor: pointer;
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+#goBtn:active { opacity: 0.8; }
+.snote {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.6;
+  max-width: 260px;
+}
 
-  /* METRICS */
-  #metrics {
-    background: var(--panel);
-    border-top: 2px solid var(--border);
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    flex-shrink: 0;
-  }
-  .metric {
-    padding: 10px 8px; text-align:center;
-    border-right: 1px solid var(--border);
-  }
-  .metric:last-child { border-right: none; }
-  .metric-label {
-    font-size: 10px; letter-spacing: 2px;
-    color: var(--muted); font-weight: 700;
-    text-transform: uppercase; margin-bottom: 2px;
-  }
-  .metric-value {
-    font-family: 'Courier New', monospace;
-    font-size: 24px; color: var(--green); line-height:1;
-  }
-  .metric-unit { font-size: 10px; color: var(--muted); letter-spacing:1px; }
+/* STATUS BAR */
+#statusBar {
+  background: var(--panel);
+  border-bottom: 2px solid var(--border);
+  padding: 8px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+.logo {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--green);
+  letter-spacing: 2px;
+}
+#gpsStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.dot.on { background: var(--green); animation: blink 1.5s infinite; }
+.dot.searching { background: var(--amber); animation: blink 0.8s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-  /* SWATH */
-  #swathControl {
-    background: var(--panel);
-    border-top: 1px solid var(--border);
-    padding: 8px 16px;
-    display: flex; align-items:center; gap:12px;
-    flex-shrink: 0;
-  }
-  .sw-label {
-    font-size: 11px; letter-spacing: 2px;
-    color: var(--muted); font-weight: 700; flex-shrink:0;
-  }
-  #swathSlider {
-    flex:1; -webkit-appearance:none;
-    height:4px; background: var(--border);
-    border-radius:2px; outline:none;
-  }
-  #swathSlider::-webkit-slider-thumb {
-    -webkit-appearance:none; width:28px; height:28px;
-    border-radius:50%; background: var(--green); cursor:pointer;
-  }
-  #swathVal {
-    font-family: 'Courier New', monospace;
-    font-size:14px; color: var(--green);
-    min-width:52px; text-align:right;
-  }
+/* MAP */
+#mapWrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #0d150d;
+  background-image:
+    linear-gradient(rgba(57,255,20,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(57,255,20,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+canvas {
+  position: absolute; top:0; left:0;
+  width: 100%; height: 100%;
+  touch-action: none;
+}
+#passBadge {
+  position: absolute; top: 12px; right: 12px;
+  background: rgba(10,15,10,0.9);
+  border: 1px solid var(--green);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--green);
+  letter-spacing: 1px;
+  pointer-events: none;
+}
+#followBtn {
+  position: absolute; top: 12px; left: 12px;
+  background: rgba(10,15,10,0.9);
+  border: 2px solid var(--green);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--green);
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+#followBtn.off { border-color: var(--muted); color: var(--muted); }
+#compass {
+  position: absolute; bottom: 16px; right: 16px;
+  width: 44px; height: 44px;
+  pointer-events: none;
+}
 
-  /* CONTROLS */
-  #controls {
-    background: var(--panel);
-    border-top: 2px solid var(--border);
-    padding: 10px 12px 24px;
-    display: flex; gap:10px; flex-shrink:0;
-  }
-  .btn {
-    flex:1; border: 2px solid var(--border);
-    border-radius:6px; background:transparent;
-    color: var(--text);
-    font-family: system-ui, -apple-system, sans-serif;
-    font-size:15px; font-weight:700; letter-spacing:1px;
-    padding:16px 8px; text-transform:uppercase;
-    cursor:pointer;
-  }
-  .btn:active { opacity: 0.7; }
-  .btn-primary {
-    background: var(--green); border-color: var(--green);
-    color:#000; font-size:17px; flex:2;
-  }
-  .btn-primary.recording {
-    background: var(--red); border-color: var(--red); color:#fff;
-  }
-  .btn-danger { border-color: rgba(255,59,48,0.5); color: rgba(255,59,48,0.8); }
-  .btn-secondary { border-color: var(--muted); color: var(--muted); }
+/* METRICS */
+#metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  background: var(--panel);
+  border-top: 2px solid var(--border);
+  flex-shrink: 0;
+}
+.metric { padding: 10px 8px; text-align: center; border-right: 1px solid var(--border); }
+.metric:last-child { border-right: none; }
+.mlabel { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 2px; }
+.mval { font-family: 'Courier New', monospace; font-size: 24px; color: var(--green); line-height: 1; }
+.munit { font-size: 10px; color: var(--muted); letter-spacing: 1px; }
 
-  /* TOAST */
-  #toast {
-    position: fixed; bottom:130px;
-    left:50%; transform:translateX(-50%);
-    background: rgba(10,15,10,0.95);
-    border: 1px solid var(--green); color: var(--green);
-    font-family: 'Courier New', monospace;
-    font-size:12px; letter-spacing:2px;
-    padding:10px 20px; border-radius:4px;
-    z-index:100; opacity:0; transition:opacity 0.3s;
-    pointer-events:none; white-space:nowrap;
-  }
-  #toast.show { opacity:1; }
+/* SWATH */
+#swathRow {
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+#swathRow span { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--muted); flex-shrink: 0; }
+#swathSlider {
+  flex: 1; -webkit-appearance: none;
+  height: 4px; background: var(--border); border-radius: 2px; outline: none;
+}
+#swathSlider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 28px; height: 28px;
+  border-radius: 50%; background: var(--green);
+}
+#swathVal { font-family: 'Courier New', monospace; font-size: 14px; color: var(--green); min-width: 50px; text-align: right; }
 
-  /* SETUP */
-  #setupScreen {
-    position: fixed; inset: 0;
-    background: var(--bg);
-    z-index: 500;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 40px 24px;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  #setupScreen.hidden { display: none !important; }
-  .setup-logo {
-    font-size:52px; font-weight:900; color:var(--green);
-    letter-spacing:-1px; line-height:1; margin-bottom:4px;
-    text-align:center;
-  }
-  .setup-sub {
-    font-family:'Courier New',monospace; font-size:11px;
-    color:var(--muted); letter-spacing:4px; margin-bottom:40px;
-    text-align:center;
-  }
-  .setup-field { width:100%; max-width:320px; margin-bottom:16px; }
-  .setup-field label {
-    display:block; font-size:11px; letter-spacing:3px;
-    color:var(--muted); font-weight:700; margin-bottom:6px;
-    text-transform:uppercase;
-  }
-  .setup-field input, .setup-field select {
-    width:100%; background:var(--panel);
-    border:2px solid var(--border); border-radius:4px;
-    color:var(--text); font-family:'Courier New',monospace;
-    font-size:18px; padding:12px 14px; outline:none;
-    -webkit-appearance:none;
-  }
-  .setup-field input:focus, .setup-field select:focus { border-color:var(--green); }
-  .setup-field select option { background:#111; }
-  .setup-start {
-    margin-top:24px; width:100%; max-width:320px;
-    background:var(--green); border:none; border-radius:6px;
-    color:#000; font-size:20px; font-weight:900;
-    letter-spacing:4px; padding:18px; cursor:pointer;
-    text-transform:uppercase;
-  }
-  .setup-note {
-    margin-top:16px; font-size:11px; color:var(--muted);
-    letter-spacing:1px; text-align:center;
-    max-width:280px; line-height:1.6;
-  }
+/* BUTTONS */
+#controls {
+  background: var(--panel);
+  border-top: 2px solid var(--border);
+  padding: 10px 12px 24px;
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.btn {
+  flex: 1; border: 2px solid var(--border); border-radius: 6px;
+  background: transparent; color: var(--text);
+  font-size: 15px; font-weight: 700; letter-spacing: 1px;
+  padding: 16px 8px; text-transform: uppercase; cursor: pointer;
+}
+.btn:active { opacity: 0.7; }
+.btn-go { flex: 2; background: var(--green); border-color: var(--green); color: #000; font-size: 17px; }
+.btn-go.active { background: var(--red); border-color: var(--red); color: #fff; }
+.btn-clear { border-color: rgba(255,59,48,0.5); color: rgba(255,59,48,0.8); }
+.btn-undo  { border-color: var(--muted); color: var(--muted); }
+
+/* TOAST */
+#toast {
+  position: fixed; bottom: 130px; left: 50%; transform: translateX(-50%);
+  background: rgba(10,15,10,0.95); border: 1px solid var(--green); color: var(--green);
+  font-family: 'Courier New', monospace; font-size: 12px; letter-spacing: 2px;
+  padding: 10px 20px; border-radius: 4px; z-index: 500;
+  opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap;
+}
+#toast.show { opacity: 1; }
 </style>
 </head>
 <body>
 
 <!-- SETUP -->
-<div id="setupScreen">
-  <div class="setup-logo">SPRAY<br>TRACK</div>
-  <div class="setup-sub">FIELD GUIDANCE SYSTEM</div>
-  <div class="setup-field">
+<div id="setup">
+  <h1>SPRAY<br>TRACK</h1>
+  <p>FIELD GUIDANCE SYSTEM</p>
+  <div class="sfield">
     <label>Swath Width (ft)</label>
-    <input type="number" id="setupSwath" value="40" min="1" max="200" inputmode="numeric">
+    <input type="number" id="inSwath" value="40" min="1" max="200" inputmode="numeric">
   </div>
-  <div class="setup-field">
+  <div class="sfield">
     <label>Field Name (optional)</label>
-    <input type="text" id="setupField" placeholder="e.g. North 40" autocomplete="off">
+    <input type="text" id="inField" placeholder="e.g. North 40" autocomplete="off">
   </div>
-  <div class="setup-field">
+  <div class="sfield">
     <label>Units</label>
-    <select id="setupUnits">
+    <select id="inUnits">
       <option value="acres">Acres</option>
       <option value="hectares">Hectares</option>
     </select>
   </div>
-  <button class="setup-start" onclick="startSession()">START SESSION →</button>
-  <div class="setup-note">Allow location access when prompted.<br>Works best outdoors with clear sky.</div>
+  <button id="goBtn">START SESSION &rarr;</button>
+  <div class="snote">Allow location access when prompted.<br>Works best outdoors with clear sky view.</div>
 </div>
 
-<!-- MAIN APP -->
+<!-- APP -->
 <div id="statusBar">
   <div class="logo">SPRAY TRACK</div>
   <div id="gpsStatus">
-    <div class="gps-dot searching" id="gpsDot"></div>
+    <div class="dot searching" id="gpsDot"></div>
     <span id="gpsText">ACQUIRING</span>
   </div>
 </div>
 
 <div id="mapWrap">
-  <canvas id="mapCanvas"></canvas>
+  <canvas id="cv"></canvas>
   <div id="passBadge">0 PASSES</div>
-  <button id="followBtn" onclick="toggleFollow()">📍 FOLLOWING</button>
-  <div id="compass">
-    <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="22" cy="22" r="20" stroke="#1e2e1e" stroke-width="2"/>
-      <text x="22" y="11" text-anchor="middle" fill="#FF3B30" font-family="monospace" font-size="9" font-weight="bold">N</text>
-      <text x="22" y="39" text-anchor="middle" fill="#4a6a4a" font-family="monospace" font-size="8">S</text>
-      <text x="7"  y="26" text-anchor="middle" fill="#4a6a4a" font-family="monospace" font-size="8">W</text>
-      <text x="37" y="26" text-anchor="middle" fill="#4a6a4a" font-family="monospace" font-size="8">E</text>
-      <g id="compassNeedle">
-        <polygon points="22,8 24,22 22,20 20,22" fill="#FF3B30"/>
-        <polygon points="22,36 24,22 22,24 20,22" fill="#4a6a4a"/>
-      </g>
-    </svg>
-  </div>
+  <button id="followBtn">&#128205; FOLLOWING</button>
+  <svg id="compass" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="22" cy="22" r="20" stroke="#1e2e1e" stroke-width="2"/>
+    <text x="22" y="11" text-anchor="middle" fill="#FF3B30" font-family="monospace" font-size="9" font-weight="bold">N</text>
+    <text x="22" y="39" text-anchor="middle" fill="#4a6a4a" font-family="monospace" font-size="8">S</text>
+    <text x="7"  y="26" text-anchor="middle" fill="#4a6a4a" font-family="monospace" font-size="8">W</text>
+    <text x="37" y="26" text-anchor="middle" fill="#4a6a4a" font-family="monospace" font-size="8">E</text>
+    <g id="needle">
+      <polygon points="22,8 24,22 22,20 20,22" fill="#FF3B30"/>
+      <polygon points="22,36 24,22 22,24 20,22" fill="#4a6a4a"/>
+    </g>
+  </svg>
 </div>
 
 <div id="metrics">
   <div class="metric">
-    <div class="metric-label">SPEED</div>
-    <div class="metric-value" id="mSpeed">0.0</div>
-    <div class="metric-unit">MPH</div>
+    <div class="mlabel">Speed</div>
+    <div class="mval" id="mSpeed">0.0</div>
+    <div class="munit">MPH</div>
   </div>
   <div class="metric">
-    <div class="metric-label">COVERED</div>
-    <div class="metric-value" id="mArea">0.00</div>
-    <div class="metric-unit" id="mAreaUnit">ACRES</div>
+    <div class="mlabel">Covered</div>
+    <div class="mval" id="mArea">0.00</div>
+    <div class="munit" id="mUnit">ACRES</div>
   </div>
   <div class="metric">
-    <div class="metric-label">HEADING</div>
-    <div class="metric-value" id="mHeading">---</div>
-    <div class="metric-unit">DEG</div>
+    <div class="mlabel">Heading</div>
+    <div class="mval" id="mHead">---</div>
+    <div class="munit">DEG</div>
   </div>
 </div>
 
-<div id="swathControl">
-  <div class="sw-label">SWATH</div>
+<div id="swathRow">
+  <span>SWATH</span>
   <input type="range" id="swathSlider" min="5" max="120" step="1" value="40">
   <div id="swathVal">40 ft</div>
 </div>
 
 <div id="controls">
-  <button class="btn btn-danger" onclick="clearAll()">CLEAR</button>
-  <button class="btn btn-primary" id="recordBtn" onclick="toggleRecord()">▶ START PASS</button>
-  <button class="btn btn-secondary" onclick="undoPass()">UNDO</button>
+  <button class="btn btn-clear" id="clearBtn">CLEAR</button>
+  <button class="btn btn-go"    id="recBtn">&#9654; START PASS</button>
+  <button class="btn btn-undo"  id="undoBtn">UNDO</button>
 </div>
 
 <div id="toast"></div>
 
 <script>
-// ══════════════════════════════════════════
-// STATE
-// All positions in meters from origin (mx = east, my = north)
-// ══════════════════════════════════════════
-const S = {
-  swathFt: 40,
-  units: 'acres',
-  recording: false,
-  passes: [],       // array of arrays of {mx, my}
-  currentPass: [],
-  gpsReady: false,
-  heading: null,
-  origin: null,     // {lat, lon}
-  curMX: 0,
-  curMY: 0,
-  camMX: 0,         // camera center in meters
-  camMY: 0,
-  scale: 4,         // logical pixels per meter
-  followMode: true,
-  wakeLock: null,
-};
+// ── STATE ──
+var swathFt   = 40;
+var units     = 'acres';
+var recording = false;
+var passes    = [];
+var curPass   = [];
+var gpsReady  = false;
+var heading   = null;
+var origin    = null;
+var curMX     = 0, curMY = 0;
+var camMX     = 0, camMY = 0;
+var scale     = 4;
+var following = true;
+var cv, ctx;
 
-let canvas, ctx;
-
-// ══════════════════════════════════════════
-// SETUP
-// ══════════════════════════════════════════
-function startSession() {
-  S.swathFt = parseFloat(document.getElementById('setupSwath').value) || 40;
-  S.units   = document.getElementById('setupUnits').value;
-  document.getElementById('swathSlider').value = S.swathFt;
-  document.getElementById('swathVal').textContent = S.swathFt + ' ft';
-  document.getElementById('mAreaUnit').textContent = S.units === 'acres' ? 'ACRES' : 'HECT';
-  document.getElementById('setupScreen').classList.add('hidden');
+// ── SETUP ──
+document.getElementById('goBtn').addEventListener('click', function() {
+  swathFt = parseFloat(document.getElementById('inSwath').value) || 40;
+  units   = document.getElementById('inUnits').value;
+  document.getElementById('swathSlider').value = swathFt;
+  document.getElementById('swathVal').textContent = swathFt + ' ft';
+  document.getElementById('mUnit').textContent = units === 'acres' ? 'ACRES' : 'HECT';
+  document.getElementById('setup').classList.add('gone');
   initCanvas();
-  initGPS();
-  acquireWakeLock();
-  requestOrientationPermission();
+  startGPS();
+  doWakeLock();
+  initOrientation();
+});
+
+// ── CANVAS ──
+function initCanvas() {
+  cv  = document.getElementById('cv');
+  ctx = cv.getContext('2d');
+  sizeCanvas();
+  window.addEventListener('resize', sizeCanvas);
+  cv.addEventListener('touchstart', onTS, { passive: false });
+  cv.addEventListener('touchmove',  onTM, { passive: false });
+  cv.addEventListener('touchend',   function() { lt = null; pd = null; });
 }
 
-// ══════════════════════════════════════════
-// GPS
-// ══════════════════════════════════════════
-function initGPS() {
-  if (!navigator.geolocation) { showToast('NO GPS AVAILABLE'); return; }
-  navigator.geolocation.watchPosition(onPosition, onGPSError, {
+function sizeCanvas() {
+  var wrap = document.getElementById('mapWrap');
+  var dpr  = window.devicePixelRatio || 1;
+  cv.width  = wrap.clientWidth  * dpr;
+  cv.height = wrap.clientHeight * dpr;
+  cv.style.width  = wrap.clientWidth  + 'px';
+  cv.style.height = wrap.clientHeight + 'px';
+  draw();
+}
+
+// ── TOUCH ──
+var lt = null, pd = null;
+
+function onTS(e) {
+  if (e.touches.length === 1) {
+    lt = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    pd = null;
+  } else if (e.touches.length === 2) {
+    pd = tdist(e.touches);
+    lt = null;
+  }
+}
+
+function onTM(e) {
+  e.preventDefault();
+  if (e.touches.length === 1 && lt) {
+    camMX -= (e.touches[0].clientX - lt.x) / scale;
+    camMY += (e.touches[0].clientY - lt.y) / scale;
+    lt = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    setFollow(false);
+    draw();
+  } else if (e.touches.length === 2 && pd) {
+    var d = tdist(e.touches);
+    scale = Math.max(0.3, Math.min(50, scale * d / pd));
+    pd = d;
+    draw();
+  }
+}
+
+function tdist(t) {
+  var dx = t[0].clientX - t[1].clientX;
+  var dy = t[0].clientY - t[1].clientY;
+  return Math.sqrt(dx*dx + dy*dy);
+}
+
+// ── GPS ──
+function startGPS() {
+  if (!navigator.geolocation) { toast('NO GPS ON THIS DEVICE'); return; }
+  navigator.geolocation.watchPosition(onPos, onErr, {
     enableHighAccuracy: true,
     maximumAge: 500,
     timeout: 15000
   });
 }
 
-function onPosition(pos) {
-  const { latitude: lat, longitude: lon, speed, heading, accuracy } = pos.coords;
+function onPos(p) {
+  var lat = p.coords.latitude;
+  var lon = p.coords.longitude;
+  var spd = p.coords.speed;
+  var hdg = p.coords.heading;
+  var acc = p.coords.accuracy;
 
-  if (!S.origin) {
-    S.origin = { lat, lon };
-    S.gpsReady = true;
-    document.getElementById('gpsDot').className = 'gps-dot active';
+  if (!origin) {
+    origin = { lat: lat, lon: lon };
+    gpsReady = true;
+    document.getElementById('gpsDot').className = 'dot on';
+  }
+  document.getElementById('gpsText').textContent = 'GPS \u00b1' + Math.round(acc) + 'ft';
+
+  curMX = mxFromLon(lon);
+  curMY = myFromLat(lat);
+
+  if (following) { camMX = curMX; camMY = curMY; }
+
+  document.getElementById('mSpeed').textContent = (spd ? spd * 2.23694 : 0).toFixed(1);
+
+  if (hdg !== null && hdg !== undefined) {
+    heading = hdg;
+    document.getElementById('mHead').textContent = Math.round(hdg);
+    var n = document.getElementById('needle');
+    if (n) n.setAttribute('transform', 'rotate(' + hdg + ' 22 22)');
   }
 
-  document.getElementById('gpsText').textContent = 'GPS \u00b1' + Math.round(accuracy) + 'M';
-
-  S.curMX = lonToMX(lon);
-  S.curMY = latToMY(lat);
-
-  if (S.followMode) {
-    S.camMX = S.curMX;
-    S.camMY = S.curMY;
+  if (recording) {
+    curPass.push({ mx: curMX, my: curMY });
+    calcArea();
   }
-
-  const spd = speed ? speed * 2.23694 : 0;
-  document.getElementById('mSpeed').textContent = spd.toFixed(1);
-
-  if (heading !== null && heading !== undefined) {
-    S.heading = heading;
-    rotateCompass(heading);
-    document.getElementById('mHeading').textContent = Math.round(heading);
-  }
-
-  if (S.recording) {
-    S.currentPass.push({ mx: S.curMX, my: S.curMY });
-    updateArea();
-  }
-
-  renderMap();
+  draw();
 }
 
-function onGPSError(err) {
-  document.getElementById('gpsDot').className = 'gps-dot';
-  if (err.code === 1) {
-    document.getElementById('gpsText').textContent = 'DENIED';
-    showToast('ALLOW LOCATION IN SETTINGS');
-  } else {
-    document.getElementById('gpsText').textContent = 'NO GPS';
-    showToast('GPS UNAVAILABLE');
-  }
+function onErr(e) {
+  document.getElementById('gpsDot').className = 'dot';
+  document.getElementById('gpsText').textContent = e.code === 1 ? 'DENIED' : 'NO GPS';
+  if (e.code === 1) toast('ALLOW LOCATION IN SETTINGS');
 }
 
-function lonToMX(lon) {
-  const R = 6371000;
-  return R * (lon - S.origin.lon) * Math.PI / 180 * Math.cos(S.origin.lat * Math.PI / 180);
+function mxFromLon(lon) {
+  var R = 6371000;
+  return R * (lon - origin.lon) * Math.PI / 180 * Math.cos(origin.lat * Math.PI / 180);
 }
-function latToMY(lat) {
-  return 6371000 * (lat - S.origin.lat) * Math.PI / 180;
-}
-
-// ══════════════════════════════════════════
-// CANVAS
-// ══════════════════════════════════════════
-function initCanvas() {
-  canvas = document.getElementById('mapCanvas');
-  ctx = canvas.getContext('2d');
-  resizeCanvas();
-  window.addEventListener('resize', resizeCanvas);
-  canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-  canvas.addEventListener('touchmove',  onTouchMove,  { passive: false });
-  canvas.addEventListener('touchend',   onTouchEnd);
+function myFromLat(lat) {
+  return 6371000 * (lat - origin.lat) * Math.PI / 180;
 }
 
-function resizeCanvas() {
-  const wrap = document.getElementById('mapWrap');
-  const dpr  = window.devicePixelRatio || 1;
-  canvas.width  = wrap.clientWidth  * dpr;
-  canvas.height = wrap.clientHeight * dpr;
-  canvas.style.width  = wrap.clientWidth  + 'px';
-  canvas.style.height = wrap.clientHeight + 'px';
-  renderMap();
-}
-
-// ══════════════════════════════════════════
-// TOUCH
-// ══════════════════════════════════════════
-let lastTouch = null, pinchDist0 = null;
-
-function onTouchStart(e) {
-  if (e.touches.length === 1) {
-    lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  } else if (e.touches.length === 2) {
-    pinchDist0 = touchDist(e.touches);
-    lastTouch = null;
-  }
-}
-
-function onTouchMove(e) {
-  e.preventDefault();
-  const dpr = window.devicePixelRatio || 1;
-  if (e.touches.length === 1 && lastTouch) {
-    const dx = e.touches[0].clientX - lastTouch.x;
-    const dy = e.touches[0].clientY - lastTouch.y;
-    S.camMX -= dx / S.scale;
-    S.camMY += dy / S.scale;
-    lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    setFollow(false);
-    renderMap();
-  } else if (e.touches.length === 2 && pinchDist0) {
-    const d = touchDist(e.touches);
-    S.scale = Math.max(0.5, Math.min(40, S.scale * d / pinchDist0));
-    pinchDist0 = d;
-    renderMap();
-  }
-}
-
-function onTouchEnd() { lastTouch = null; pinchDist0 = null; }
-function touchDist(t) {
-  return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
-}
-
-// ══════════════════════════════════════════
-// RENDER
-// wx(mx) -> canvas x,  wy(my) -> canvas y
-// camera is at (camMX, camMY) shown at canvas center
-// ══════════════════════════════════════════
-function renderMap() {
-  if (!canvas || !ctx) return;
-  const W = canvas.width, H = canvas.height;
-  const dpr = window.devicePixelRatio || 1;
-  const sc  = S.scale * dpr;
+// ── DRAW ──
+function draw() {
+  if (!cv || !ctx) return;
+  var W = cv.width, H = cv.height;
+  var dpr = window.devicePixelRatio || 1;
+  var sc  = scale * dpr;
 
   ctx.clearRect(0, 0, W, H);
 
-  function wx(mx) { return W/2 + (mx - S.camMX) * sc; }
-  function wy(my) { return H/2 - (my - S.camMY) * sc; }
+  function wx(mx) { return W/2 + (mx - camMX) * sc; }
+  function wy(my) { return H/2 - (my - camMY) * sc; }
 
-  const swathM = S.swathFt * 0.3048;
+  var swM = swathFt * 0.3048;
 
-  // Completed passes
-  S.passes.forEach(pass => drawPass(pass, swathM, sc, wx, wy, false));
+  for (var i = 0; i < passes.length; i++) {
+    drawPass(passes[i], swM, sc, wx, wy, false);
+  }
+  if (curPass.length > 1) drawPass(curPass, swM, sc, wx, wy, true);
 
-  // Active pass
-  if (S.currentPass.length > 1) drawPass(S.currentPass, swathM, sc, wx, wy, true);
+  if (gpsReady) {
+    var px = wx(curMX), py = wy(curMY);
+    var r  = 12 * dpr;
 
-  // Position dot — always draw at canvas center when following
-  if (S.gpsReady) {
-    const px = wx(S.curMX), py = wy(S.curMY);
-    const r = 14 * dpr;
-
-    // Outer glow
     ctx.beginPath();
-    ctx.arc(px, py, r * 2, 0, Math.PI * 2);
-    ctx.fillStyle = S.recording ? 'rgba(255,59,48,0.2)' : 'rgba(57,255,20,0.2)';
+    ctx.arc(px, py, r * 2.2, 0, Math.PI*2);
+    ctx.fillStyle = recording ? 'rgba(255,59,48,0.18)' : 'rgba(57,255,20,0.18)';
     ctx.fill();
 
     ctx.beginPath();
-    ctx.arc(px, py, r, 0, Math.PI * 2);
-    ctx.fillStyle = S.recording ? '#FF3B30' : '#39FF14';
+    ctx.arc(px, py, r, 0, Math.PI*2);
+    ctx.fillStyle = recording ? '#FF3B30' : '#39FF14';
     ctx.fill();
 
     ctx.beginPath();
-    ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.arc(px, py, r, 0, Math.PI*2);
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3 * dpr;
+    ctx.lineWidth = 2.5 * dpr;
     ctx.stroke();
 
-    if (S.heading !== null) {
-      const rad = (S.heading - 90) * Math.PI / 180;
-      const len = 60 * dpr;
+    if (heading !== null) {
+      var rad = (heading - 90) * Math.PI / 180;
       ctx.beginPath();
       ctx.moveTo(px, py);
-      ctx.lineTo(px + Math.cos(rad) * len, py + Math.sin(rad) * len);
-      ctx.strokeStyle = S.recording ? '#FF3B30' : '#39FF14';
-      ctx.lineWidth = 4 * dpr;
-      ctx.setLineDash([8 * dpr, 5 * dpr]);
+      ctx.lineTo(px + Math.cos(rad)*55*dpr, py + Math.sin(rad)*55*dpr);
+      ctx.strokeStyle = recording ? '#FF3B30' : '#39FF14';
+      ctx.lineWidth = 3 * dpr;
+      ctx.setLineDash([7*dpr, 5*dpr]);
       ctx.stroke();
       ctx.setLineDash([]);
     }
   }
+}
 
-  // Scale bar — only show when GPS is active
-  if (S.gpsReady) {
-    const barM = 500 * 0.3048;
-    const barPx = barM * sc;
-    const bx = W - barPx - 60 * dpr, by = H - 48 * dpr;
-    ctx.fillStyle = 'rgba(57,255,20,0.75)';
-    ctx.fillRect(bx, by, barPx, 3 * dpr);
-    ctx.fillRect(bx, by - 5*dpr, 2*dpr, 12*dpr);
-    ctx.fillRect(bx + barPx - 2*dpr, by - 5*dpr, 2*dpr, 12*dpr);
-    ctx.font = (12 * dpr) + 'px "Courier New"';
-    ctx.fillText('500 ft', bx, by - 9 * dpr);
-  }
-
-function drawPass(pts, swathM, sc, wx, wy, isActive) {
+function drawPass(pts, swM, sc, wx, wy, active) {
   if (pts.length < 2) return;
-  const half = swathM / 2 * sc;
-  const left = [], right = [];
-
-  for (let i = 0; i < pts.length; i++) {
-    let dmx, dmy;
-    if (i < pts.length - 1) {
-      dmx = pts[i+1].mx - pts[i].mx;
-      dmy = pts[i+1].my - pts[i].my;
-    } else {
-      dmx = pts[i].mx - pts[i-1].mx;
-      dmy = pts[i].my - pts[i-1].my;
-    }
-    // Perpendicular in canvas space (y flipped)
-    const len = Math.hypot(dmx, dmy) || 1;
-    // perp to (dmx, -dmy) in canvas = (dmy, dmx) normalized
-    const nx =  dmy / len * half;
-    const ny =  dmx / len * half;
-    const px = wx(pts[i].mx), py = wy(pts[i].my);
-    left.push ({ x: px - nx, y: py - ny });
-    right.push({ x: px + nx, y: py + ny });
+  var half = swM / 2 * sc;
+  var L = [], R = [];
+  for (var i = 0; i < pts.length; i++) {
+    var dmx, dmy;
+    if (i < pts.length - 1) { dmx = pts[i+1].mx - pts[i].mx; dmy = pts[i+1].my - pts[i].my; }
+    else                    { dmx = pts[i].mx - pts[i-1].mx; dmy = pts[i].my - pts[i-1].my; }
+    var len = Math.sqrt(dmx*dmx + dmy*dmy) || 1;
+    var nx =  dmy/len * half;
+    var ny =  dmx/len * half;
+    var px = wx(pts[i].mx), py = wy(pts[i].my);
+    L.push({ x: px-nx, y: py-ny });
+    R.push({ x: px+nx, y: py+ny });
   }
-
-  const poly = [...left, ...[...right].reverse()];
+  var poly = L.concat(R.slice().reverse());
   ctx.beginPath();
   ctx.moveTo(poly[0].x, poly[0].y);
-  for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i].x, poly[i].y);
+  for (var j = 1; j < poly.length; j++) ctx.lineTo(poly[j].x, poly[j].y);
   ctx.closePath();
-  ctx.fillStyle   = isActive ? 'rgba(57,255,20,0.38)' : 'rgba(57,255,20,0.18)';
+  ctx.fillStyle   = active ? 'rgba(57,255,20,0.35)' : 'rgba(57,255,20,0.18)';
   ctx.fill();
-  ctx.strokeStyle = isActive ? '#39FF14' : 'rgba(57,255,20,0.55)';
-  ctx.lineWidth   = (isActive ? 2 : 1.5) * (window.devicePixelRatio || 1);
+  ctx.strokeStyle = active ? '#39FF14' : 'rgba(57,255,20,0.6)';
+  ctx.lineWidth   = (active ? 2 : 1.5) * (window.devicePixelRatio || 1);
   ctx.stroke();
 }
 
-// ══════════════════════════════════════════
-// RECORDING
-// ══════════════════════════════════════════
-function toggleRecord() {
-  if (!S.gpsReady) { showToast('WAITING FOR GPS'); return; }
-
-  const btn = document.getElementById('recordBtn');
-
-  if (!S.recording) {
-    // START
-    S.recording = true;
-    S.currentPass = [];
-    btn.textContent = '\u23f9 END PASS';
-    btn.classList.add('recording');
-    setFollow(true);
-    showToast('PASS STARTED');
-  } else {
-    // END
-    S.recording = false;
-    if (S.currentPass.length > 1) {
-      S.passes.push([...S.currentPass]);
-      updatePassBadge();
-      updateArea();
-      showToast('PASS ' + S.passes.length + ' SAVED');
-    } else {
-      showToast('TOO SHORT \u2014 MOVE FIRST');
+// ── AREA ──
+function calcArea() {
+  var swM = swathFt * 0.3048;
+  var total = 0;
+  var all = recording ? passes.concat([curPass]) : passes;
+  for (var i = 0; i < all.length; i++) {
+    var pass = all[i];
+    for (var j = 1; j < pass.length; j++) {
+      var dx = pass[j].mx - pass[j-1].mx;
+      var dy = pass[j].my - pass[j-1].my;
+      total += Math.sqrt(dx*dx + dy*dy) * swM;
     }
-    S.currentPass = [];
-    btn.textContent = '\u25b6 START PASS';
-    btn.classList.remove('recording');
-    renderMap();
   }
-}
-
-function undoPass() {
-  if (S.recording) {
-    S.recording = false;
-    S.currentPass = [];
-    const btn = document.getElementById('recordBtn');
-    btn.textContent = '\u25b6 START PASS';
-    btn.classList.remove('recording');
-    showToast('PASS CANCELLED');
-    renderMap();
-    return;
-  }
-  if (S.passes.length === 0) { showToast('NOTHING TO UNDO'); return; }
-  S.passes.pop();
-  updatePassBadge();
-  updateArea();
-  showToast('LAST PASS REMOVED');
-  renderMap();
-}
-
-function clearAll() {
-  if (S.passes.length === 0 && S.currentPass.length === 0) { showToast('NOTHING TO CLEAR'); return; }
-  if (!confirm('Clear all passes?')) return;
-  S.passes = [];
-  S.currentPass = [];
-  S.recording = false;
-  const btn = document.getElementById('recordBtn');
-  btn.textContent = '\u25b6 START PASS';
-  btn.classList.remove('recording');
-  document.getElementById('mArea').textContent = '0.00';
-  updatePassBadge();
-  renderMap();
-  showToast('CLEARED');
-}
-
-// ══════════════════════════════════════════
-// AREA & BADGE
-// ══════════════════════════════════════════
-function updateArea() {
-  const swathM = S.swathFt * 0.3048;
-  let totalM2 = 0;
-  const all = S.recording ? [...S.passes, S.currentPass] : S.passes;
-  all.forEach(pass => {
-    for (let i = 1; i < pass.length; i++) {
-      totalM2 += Math.hypot(pass[i].mx - pass[i-1].mx, pass[i].my - pass[i-1].my) * swathM;
-    }
-  });
-  const area = S.units === 'acres' ? totalM2 / 4046.86 : totalM2 / 10000;
+  var area = units === 'acres' ? total / 4046.86 : total / 10000;
   document.getElementById('mArea').textContent = area.toFixed(2);
 }
 
-function updatePassBadge() {
-  const n = S.passes.length;
+function updateBadge() {
+  var n = passes.length;
   document.getElementById('passBadge').textContent = n + (n === 1 ? ' PASS' : ' PASSES');
 }
 
-// ══════════════════════════════════════════
-// FOLLOW MODE
-// ══════════════════════════════════════════
+// ── RECORD ──
+document.getElementById('recBtn').addEventListener('click', function() {
+  if (!gpsReady) { toast('WAITING FOR GPS'); return; }
+  if (!recording) {
+    recording = true;
+    curPass = [];
+    this.textContent = '\u23f9 END PASS';
+    this.classList.add('active');
+    setFollow(true);
+    toast('PASS STARTED');
+  } else {
+    recording = false;
+    if (curPass.length > 1) {
+      passes.push(curPass.slice());
+      updateBadge();
+      calcArea();
+      toast('PASS ' + passes.length + ' SAVED');
+    } else {
+      toast('TOO SHORT \u2014 DRIVE FIRST');
+    }
+    curPass = [];
+    this.textContent = '\u25b6 START PASS';
+    this.classList.remove('active');
+    draw();
+  }
+});
+
+document.getElementById('undoBtn').addEventListener('click', function() {
+  if (recording) {
+    recording = false;
+    curPass = [];
+    var btn = document.getElementById('recBtn');
+    btn.textContent = '\u25b6 START PASS';
+    btn.classList.remove('active');
+    toast('PASS CANCELLED');
+    draw();
+    return;
+  }
+  if (passes.length === 0) { toast('NOTHING TO UNDO'); return; }
+  passes.pop();
+  updateBadge();
+  calcArea();
+  toast('LAST PASS REMOVED');
+  draw();
+});
+
+document.getElementById('clearBtn').addEventListener('click', function() {
+  if (passes.length === 0 && curPass.length === 0) { toast('NOTHING TO CLEAR'); return; }
+  if (!confirm('Clear all passes?')) return;
+  passes = []; curPass = []; recording = false;
+  var btn = document.getElementById('recBtn');
+  btn.textContent = '\u25b6 START PASS';
+  btn.classList.remove('active');
+  document.getElementById('mArea').textContent = '0.00';
+  updateBadge();
+  draw();
+  toast('CLEARED');
+});
+
+// ── SWATH ──
+document.getElementById('swathSlider').addEventListener('input', function() {
+  swathFt = parseFloat(this.value);
+  document.getElementById('swathVal').textContent = swathFt + ' ft';
+  if (ctx) { calcArea(); draw(); }
+});
+
+// ── FOLLOW ──
+document.getElementById('followBtn').addEventListener('click', function() {
+  setFollow(!following);
+});
+
 function setFollow(on) {
-  S.followMode = on;
-  const btn = document.getElementById('followBtn');
+  following = on;
+  var btn = document.getElementById('followBtn');
   if (on) {
     btn.classList.remove('off');
     btn.textContent = '\ud83d\udccd FOLLOWING';
-    if (S.gpsReady) { S.camMX = S.curMX; S.camMY = S.curMY; renderMap(); }
+    if (gpsReady) { camMX = curMX; camMY = curMY; draw(); }
   } else {
     btn.classList.add('off');
     btn.textContent = '\ud83d\udccd FOLLOW';
   }
 }
 
-function toggleFollow() {
-  setFollow(!S.followMode);
-  if (!S.followMode) showToast('FOLLOW OFF \u2014 DRAG TO PAN');
-}
-
-// ══════════════════════════════════════════
-// HELPERS
-// ══════════════════════════════════════════
-function showToast(msg) {
-  const t = document.getElementById('toast');
+// ── TOAST ──
+function toast(msg) {
+  var t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(t._tid);
-  t._tid = setTimeout(() => t.classList.remove('show'), 2500);
+  t._tid = setTimeout(function() { t.classList.remove('show'); }, 2500);
 }
 
-function rotateCompass(h) {
-  const n = document.getElementById('compassNeedle');
-  if (n) n.setAttribute('transform', 'rotate(' + h + ' 22 22)');
-}
-
-async function acquireWakeLock() {
+// ── WAKE LOCK ──
+async function doWakeLock() {
   if ('wakeLock' in navigator) {
-    try { S.wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {}
+    try { await navigator.wakeLock.request('screen'); } catch(e) {}
   }
 }
-
-document.addEventListener('visibilitychange', async () => {
-  if (document.visibilityState === 'visible') await acquireWakeLock();
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') doWakeLock();
 });
 
-function requestOrientationPermission() {
+// ── ORIENTATION ──
+function initOrientation() {
   if (typeof DeviceOrientationEvent !== 'undefined' &&
       typeof DeviceOrientationEvent.requestPermission === 'function') {
     DeviceOrientationEvent.requestPermission()
-      .then(p => { if (p === 'granted') window.addEventListener('deviceorientation', onOrientation); })
-      .catch(() => {});
+      .then(function(p) { if (p === 'granted') window.addEventListener('deviceorientation', onOrient); })
+      .catch(function() {});
   } else {
-    window.addEventListener('deviceorientation', onOrientation);
+    window.addEventListener('deviceorientation', onOrient);
   }
 }
 
-function onOrientation(e) {
-  const h = e.webkitCompassHeading !== undefined ? e.webkitCompassHeading
-            : (e.alpha !== null ? 360 - e.alpha : null);
-  if (h !== null && S.heading === null) {
-    S.heading = h;
-    rotateCompass(h);
-    document.getElementById('mHeading').textContent = Math.round(h);
+function onOrient(e) {
+  var h = e.webkitCompassHeading !== undefined ? e.webkitCompassHeading
+          : (e.alpha !== null ? 360 - e.alpha : null);
+  if (h !== null && heading === null) {
+    heading = h;
+    document.getElementById('mHead').textContent = Math.round(h);
+    var n = document.getElementById('needle');
+    if (n) n.setAttribute('transform', 'rotate(' + h + ' 22 22)');
   }
 }
-
-document.getElementById('swathSlider').addEventListener('input', function() {
-  S.swathFt = parseFloat(this.value);
-  document.getElementById('swathVal').textContent = this.value + ' ft';
-  if (canvas) { updateArea(); renderMap(); }
-});
 </script>
 </body>
 </html>
