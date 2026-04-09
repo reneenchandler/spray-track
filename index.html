@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -30,231 +29,233 @@
     user-select: none;
   }
 
-/* STATUS BAR */
-#statusBar {
-background: var(–panel);
-border-bottom: 2px solid var(–border);
-padding: 8px 12px 6px;
-display: flex;
-justify-content: space-between;
-align-items: center;
-flex-shrink: 0;
-}
-#statusBar .logo {
-font-family: ‘Courier New’, monospace;
-font-size: 13px;
-color: var(–green);
-letter-spacing: 2px;
-font-weight: bold;
-}
-#gpsStatus {
-font-size: 12px;
-font-weight: 700;
-letter-spacing: 1px;
-display: flex;
-align-items: center;
-gap: 6px;
-}
-.gps-dot {
-width: 8px; height: 8px;
-border-radius: 50%;
-background: var(–muted);
-}
-.gps-dot.active { background: var(–green); animation: pulse 1.5s infinite; }
-.gps-dot.searching { background: var(–amber); animation: pulse 0.8s infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  /* STATUS BAR */
+  #statusBar {
+    background: var(--panel);
+    border-bottom: 2px solid var(--border);
+    padding: 8px 12px 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  #statusBar .logo {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: var(--green);
+    letter-spacing: 2px;
+    font-weight: bold;
+  }
+  #gpsStatus {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .gps-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+  .gps-dot.active { background: var(--green); animation: pulse 1.5s infinite; }
+  .gps-dot.searching { background: var(--amber); animation: pulse 0.8s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-/* MAP */
-#mapWrap {
-flex: 1;
-position: relative;
-overflow: hidden;
-background: #0d150d;
-background-image:
-linear-gradient(rgba(57,255,20,0.04) 1px, transparent 1px),
-linear-gradient(90deg, rgba(57,255,20,0.04) 1px, transparent 1px);
-background-size: 40px 40px;
-}
-canvas {
-position: absolute; top:0; left:0;
-width:100%; height:100%;
-touch-action: none;
-}
+  /* MAP */
+  #mapWrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #0d150d;
+    background-image:
+      linear-gradient(rgba(57,255,20,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(57,255,20,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  canvas {
+    position: absolute; top:0; left:0;
+    width:100%; height:100%;
+    touch-action: none;
+  }
 
-/* MAP OVERLAYS */
-#passBadge {
-position: absolute; top:12px; right:12px;
-background: rgba(10,15,10,0.85);
-border: 1px solid var(–green);
-border-radius: 4px;
-padding: 6px 10px;
-font-family: ‘Courier New’, monospace;
-font-size: 12px; color: var(–green);
-letter-spacing: 1px; z-index: 20;
-pointer-events: none;
-}
-#followBtn {
-position: absolute; bottom:16px; left:16px;
-background: rgba(10,15,10,0.85);
-border: 2px solid var(–green);
-border-radius: 4px;
-padding: 10px 14px;
-font-family: ‘Courier New’, monospace;
-font-size: 12px; color: var(–green);
-letter-spacing: 1px; z-index: 20;
-cursor: pointer;
-font-weight: bold;
-}
-#followBtn.off { border-color: var(–muted); color: var(–muted); }
-#compass {
-position: absolute; bottom:16px; right:16px;
-width:44px; height:44px; z-index:20; pointer-events:none;
-}
+  /* MAP OVERLAYS */
+  #passBadge {
+    position: absolute; top:12px; right:12px;
+    background: rgba(10,15,10,0.85);
+    border: 1px solid var(--green);
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px; color: var(--green);
+    letter-spacing: 1px; z-index: 20;
+    pointer-events: none;
+  }
+  #followBtn {
+    position: absolute; bottom:16px; left:16px;
+    background: rgba(10,15,10,0.85);
+    border: 2px solid var(--green);
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px; color: var(--green);
+    letter-spacing: 1px; z-index: 20;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  #followBtn.off { border-color: var(--muted); color: var(--muted); }
+  #compass {
+    position: absolute; bottom:16px; right:16px;
+    width:44px; height:44px; z-index:20; pointer-events:none;
+  }
 
-/* METRICS */
-#metrics {
-background: var(–panel);
-border-top: 2px solid var(–border);
-display: grid;
-grid-template-columns: 1fr 1fr 1fr;
-flex-shrink: 0;
-}
-.metric {
-padding: 10px 8px; text-align:center;
-border-right: 1px solid var(–border);
-}
-.metric:last-child { border-right: none; }
-.metric-label {
-font-size: 10px; letter-spacing: 2px;
-color: var(–muted); font-weight: 700;
-text-transform: uppercase; margin-bottom: 2px;
-}
-.metric-value {
-font-family: ‘Courier New’, monospace;
-font-size: 24px; color: var(–green); line-height:1;
-}
-.metric-unit { font-size: 10px; color: var(–muted); letter-spacing:1px; }
+  /* METRICS */
+  #metrics {
+    background: var(--panel);
+    border-top: 2px solid var(--border);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    flex-shrink: 0;
+  }
+  .metric {
+    padding: 10px 8px; text-align:center;
+    border-right: 1px solid var(--border);
+  }
+  .metric:last-child { border-right: none; }
+  .metric-label {
+    font-size: 10px; letter-spacing: 2px;
+    color: var(--muted); font-weight: 700;
+    text-transform: uppercase; margin-bottom: 2px;
+  }
+  .metric-value {
+    font-family: 'Courier New', monospace;
+    font-size: 24px; color: var(--green); line-height:1;
+  }
+  .metric-unit { font-size: 10px; color: var(--muted); letter-spacing:1px; }
 
-/* SWATH */
-#swathControl {
-background: var(–panel);
-border-top: 1px solid var(–border);
-padding: 8px 16px;
-display: flex; align-items:center; gap:12px;
-flex-shrink: 0;
-}
-.sw-label {
-font-size: 11px; letter-spacing: 2px;
-color: var(–muted); font-weight: 700; flex-shrink:0;
-}
-#swathSlider {
-flex:1; -webkit-appearance:none;
-height:4px; background: var(–border);
-border-radius:2px; outline:none;
-}
-#swathSlider::-webkit-slider-thumb {
--webkit-appearance:none; width:28px; height:28px;
-border-radius:50%; background: var(–green); cursor:pointer;
-}
-#swathVal {
-font-family: ‘Courier New’, monospace;
-font-size:14px; color: var(–green);
-min-width:52px; text-align:right;
-}
+  /* SWATH */
+  #swathControl {
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    padding: 8px 16px;
+    display: flex; align-items:center; gap:12px;
+    flex-shrink: 0;
+  }
+  .sw-label {
+    font-size: 11px; letter-spacing: 2px;
+    color: var(--muted); font-weight: 700; flex-shrink:0;
+  }
+  #swathSlider {
+    flex:1; -webkit-appearance:none;
+    height:4px; background: var(--border);
+    border-radius:2px; outline:none;
+  }
+  #swathSlider::-webkit-slider-thumb {
+    -webkit-appearance:none; width:28px; height:28px;
+    border-radius:50%; background: var(--green); cursor:pointer;
+  }
+  #swathVal {
+    font-family: 'Courier New', monospace;
+    font-size:14px; color: var(--green);
+    min-width:52px; text-align:right;
+  }
 
-/* CONTROLS */
-#controls {
-background: var(–panel);
-border-top: 2px solid var(–border);
-padding: 10px 12px 24px;
-display: flex; gap:10px; flex-shrink:0;
-}
-.btn {
-flex:1; border: 2px solid var(–border);
-border-radius:6px; background:transparent;
-color: var(–text);
-font-family: system-ui, -apple-system, sans-serif;
-font-size:15px; font-weight:700; letter-spacing:1px;
-padding:16px 8px; text-transform:uppercase;
-cursor:pointer;
-}
-.btn:active { opacity: 0.7; }
-.btn-primary {
-background: var(–green); border-color: var(–green);
-color:#000; font-size:17px; flex:2;
-}
-.btn-primary.recording {
-background: var(–red); border-color: var(–red); color:#fff;
-}
-.btn-danger { border-color: rgba(255,59,48,0.5); color: rgba(255,59,48,0.8); }
-.btn-secondary { border-color: var(–muted); color: var(–muted); }
+  /* CONTROLS */
+  #controls {
+    background: var(--panel);
+    border-top: 2px solid var(--border);
+    padding: 10px 12px 24px;
+    display: flex; gap:10px; flex-shrink:0;
+  }
+  .btn {
+    flex:1; border: 2px solid var(--border);
+    border-radius:6px; background:transparent;
+    color: var(--text);
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size:15px; font-weight:700; letter-spacing:1px;
+    padding:16px 8px; text-transform:uppercase;
+    cursor:pointer;
+  }
+  .btn:active { opacity: 0.7; }
+  .btn-primary {
+    background: var(--green); border-color: var(--green);
+    color:#000; font-size:17px; flex:2;
+  }
+  .btn-primary.recording {
+    background: var(--red); border-color: var(--red); color:#fff;
+  }
+  .btn-danger { border-color: rgba(255,59,48,0.5); color: rgba(255,59,48,0.8); }
+  .btn-secondary { border-color: var(--muted); color: var(--muted); }
 
-/* TOAST */
-#toast {
-position: fixed; bottom:130px;
-left:50%; transform:translateX(-50%);
-background: rgba(10,15,10,0.95);
-border: 1px solid var(–green); color: var(–green);
-font-family: ‘Courier New’, monospace;
-font-size:12px; letter-spacing:2px;
-padding:10px 20px; border-radius:4px;
-z-index:100; opacity:0; transition:opacity 0.3s;
-pointer-events:none; white-space:nowrap;
-}
-#toast.show { opacity:1; }
+  /* TOAST */
+  #toast {
+    position: fixed; bottom:130px;
+    left:50%; transform:translateX(-50%);
+    background: rgba(10,15,10,0.95);
+    border: 1px solid var(--green); color: var(--green);
+    font-family: 'Courier New', monospace;
+    font-size:12px; letter-spacing:2px;
+    padding:10px 20px; border-radius:4px;
+    z-index:100; opacity:0; transition:opacity 0.3s;
+    pointer-events:none; white-space:nowrap;
+  }
+  #toast.show { opacity:1; }
 
-/* SETUP */
-#setupScreen {
-position:fixed; inset:0; background:var(–bg);
-z-index:200; display:flex; flex-direction:column;
-align-items:center; justify-content:center;
-padding:40px 24px;
-}
-#setupScreen.hidden { display:none; }
-.setup-logo {
-font-size:52px; font-weight:900; color:var(–green);
-letter-spacing:-1px; line-height:1; margin-bottom:4px;
-text-align:center;
-}
-.setup-sub {
-font-family:‘Courier New’,monospace; font-size:11px;
-color:var(–muted); letter-spacing:4px; margin-bottom:40px;
-text-align:center;
-}
-.setup-field { width:100%; max-width:320px; margin-bottom:16px; }
-.setup-field label {
-display:block; font-size:11px; letter-spacing:3px;
-color:var(–muted); font-weight:700; margin-bottom:6px;
-text-transform:uppercase;
-}
-.setup-field input, .setup-field select {
-width:100%; background:var(–panel);
-border:2px solid var(–border); border-radius:4px;
-color:var(–text); font-family:‘Courier New’,monospace;
-font-size:18px; padding:12px 14px; outline:none;
--webkit-appearance:none;
-}
-.setup-field input:focus, .setup-field select:focus { border-color:var(–green); }
-.setup-field select option { background:#111; }
-.setup-start {
-margin-top:24px; width:100%; max-width:320px;
-background:var(–green); border:none; border-radius:6px;
-color:#000; font-size:20px; font-weight:900;
-letter-spacing:4px; padding:18px; cursor:pointer;
-text-transform:uppercase;
-}
-.setup-note {
-margin-top:16px; font-size:11px; color:var(–muted);
-letter-spacing:1px; text-align:center;
-max-width:280px; line-height:1.6;
-}
+  /* SETUP */
+  #setupScreen {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    z-index: 500;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px 24px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #setupScreen.hidden { display: none !important; }
+  .setup-logo {
+    font-size:52px; font-weight:900; color:var(--green);
+    letter-spacing:-1px; line-height:1; margin-bottom:4px;
+    text-align:center;
+  }
+  .setup-sub {
+    font-family:'Courier New',monospace; font-size:11px;
+    color:var(--muted); letter-spacing:4px; margin-bottom:40px;
+    text-align:center;
+  }
+  .setup-field { width:100%; max-width:320px; margin-bottom:16px; }
+  .setup-field label {
+    display:block; font-size:11px; letter-spacing:3px;
+    color:var(--muted); font-weight:700; margin-bottom:6px;
+    text-transform:uppercase;
+  }
+  .setup-field input, .setup-field select {
+    width:100%; background:var(--panel);
+    border:2px solid var(--border); border-radius:4px;
+    color:var(--text); font-family:'Courier New',monospace;
+    font-size:18px; padding:12px 14px; outline:none;
+    -webkit-appearance:none;
+  }
+  .setup-field input:focus, .setup-field select:focus { border-color:var(--green); }
+  .setup-field select option { background:#111; }
+  .setup-start {
+    margin-top:24px; width:100%; max-width:320px;
+    background:var(--green); border:none; border-radius:6px;
+    color:#000; font-size:20px; font-weight:900;
+    letter-spacing:4px; padding:18px; cursor:pointer;
+    text-transform:uppercase;
+  }
+  .setup-note {
+    margin-top:16px; font-size:11px; color:var(--muted);
+    letter-spacing:1px; text-align:center;
+    max-width:280px; line-height:1.6;
+  }
 </style>
-
 </head>
 <body>
 
 <!-- SETUP -->
-
 <div id="setupScreen">
   <div class="setup-logo">SPRAY<br>TRACK</div>
   <div class="setup-sub">FIELD GUIDANCE SYSTEM</div>
@@ -278,7 +279,6 @@ max-width:280px; line-height:1.6;
 </div>
 
 <!-- MAIN APP -->
-
 <div id="statusBar">
   <div class="logo">SPRAY TRACK</div>
   <div id="gpsStatus">
@@ -289,7 +289,7 @@ max-width:280px; line-height:1.6;
 
 <div id="mapWrap">
   <canvas id="mapCanvas"></canvas>
-  <div id="version" style="position:absolute;top:12px;left:12px;background:#FF3B30;color:#fff;font-family:monospace;font-size:11px;font-weight:bold;padding:4px 8px;border-radius:4px;z-index:99;pointer-events:none;">V4</div>
+  <div id="passBadge">0 PASSES</div>
   <button id="followBtn" onclick="toggleFollow()">📍 FOLLOWING</button>
   <div id="compass">
     <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -565,22 +565,18 @@ function renderMap() {
       ctx.stroke();
       ctx.setLineDash([]);
     }
-
-    // Debug text so we can see canvas dimensions and dot position
-    ctx.font = (10 * dpr) + 'px monospace';
-    ctx.fillStyle = 'rgba(57,255,20,0.6)';
-    ctx.fillText('dot:' + Math.round(px/dpr) + ',' + Math.round(py/dpr) + '  canvas:' + Math.round(W/dpr) + 'x' + Math.round(H/dpr), 20*dpr, 30*dpr);
   }
 
-  // Scale bar — always show 50m
-  const barPx = 50 * sc;
+  // Scale bar — 500 ft
+  const barM = 500 * 0.3048;
+  const barPx = barM * sc;
   const bx = 20 * dpr, by = H - 48 * dpr;
   ctx.fillStyle = 'rgba(57,255,20,0.75)';
   ctx.fillRect(bx, by, barPx, 3 * dpr);
   ctx.fillRect(bx, by - 5*dpr, 2*dpr, 12*dpr);
   ctx.fillRect(bx + barPx - 2*dpr, by - 5*dpr, 2*dpr, 12*dpr);
   ctx.font = (12 * dpr) + 'px "Courier New"';
-  ctx.fillText('50m', bx, by - 9 * dpr);
+  ctx.fillText('500 ft', bx, by - 9 * dpr);
 }
 
 function drawPass(pts, swathM, sc, wx, wy, isActive) {
@@ -783,6 +779,5 @@ document.getElementById('swathSlider').addEventListener('input', function() {
   renderMap();
 });
 </script>
-
 </body>
 </html>
