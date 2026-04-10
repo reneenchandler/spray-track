@@ -173,21 +173,32 @@ body {
 #baseBtn    { top:50px; right:12px; left:auto; max-width:110px; text-align:center; padding:7px 8px; }
 #compassHud {
   position:absolute; right:12px; top:88px; z-index:10;
-  width:66px; height:66px; border-radius:50%;
+  width:76px; height:76px; border-radius:50%;
   background:rgba(8,13,8,0.48);
   border:1px solid rgba(140,190,140,0.28);
   backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
   pointer-events:none;
 }
+#compassRing {
+  position:absolute; inset:7px; border-radius:50%;
+  border:1px solid rgba(220,235,220,0.3);
+}
 #compassArrow {
   position:absolute; left:50%; top:50%;
   transform:translate(-50%,-50%) rotate(0deg);
   transform-origin:50% 50%;
-  color:#ff4c4c; font-size:20px; line-height:1;
+  color:#ff4c4c; font-size:19px; line-height:1;
   text-shadow:0 0 8px rgba(255,76,76,0.35);
 }
+#compN,#compS,#compE,#compW{
+  position:absolute; color:#f2f2f2; font-size:11px; font-weight:700; letter-spacing:0.5px;
+}
+#compN{ left:50%; top:6px; transform:translateX(-50%); color:#ff7070; }
+#compS{ left:50%; bottom:7px; transform:translateX(-50%); }
+#compE{ right:8px; top:50%; transform:translateY(-50%); }
+#compW{ left:8px; top:50%; transform:translateY(-50%); }
 #compassDeg {
-  position:absolute; left:50%; bottom:-16px; transform:translateX(-50%);
+  position:absolute; left:50%; bottom:-18px; transform:translateX(-50%);
   min-width:48px; text-align:center; font-size:11px; font-weight:700;
   color:#fff; letter-spacing:0.5px;
   background:rgba(8,13,8,0.55); border:1px solid rgba(140,190,140,0.2);
@@ -526,7 +537,12 @@ body {
     <button class="map-btn"     id="abBtn">AB LINE</button>
     <button class="map-btn on"  id="baseBtn" type="button" onclick="cycleBasemap()">GRAY MAP</button>
     <div id="compassHud">
+      <div id="compassRing"></div>
       <div id="compassArrow">▲</div>
+      <div id="compN">N</div>
+      <div id="compE">E</div>
+      <div id="compS">S</div>
+      <div id="compW">W</div>
       <div id="compassDeg">--°</div>
     </div>
     <div id="lightbar">
@@ -802,7 +818,8 @@ function showScreen(id) {
 // ═══════════════════════════════════════════════════
 var BASEMAPS = {
   gray: {
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    // Carto dark tiles are more reliable on mobile Safari than Esri Canvas.
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
     photo: false
   },
   topo: {
@@ -822,7 +839,13 @@ var BASEMAP_ORDER = ['gray', 'topo', 'street', 'sat'];
 var tileFailHandled = false;
 function basemapDef() { return BASEMAPS[S.basemap] || BASEMAPS.gray; }
 function basemapTileUrl(z, tx, ty) {
-  return basemapDef().url.replace('{z}', z).replace('{x}', tx).replace('{y}', ty);
+  var u = basemapDef().url.replace('{z}', z).replace('{x}', tx).replace('{y}', ty);
+  if (u.indexOf('{s}') !== -1) {
+    var subs = ['a','b','c','d'];
+    var s = subs[Math.abs(tx + ty) % subs.length];
+    u = u.replace('{s}', s);
+  }
+  return u;
 }
 function syncBasemapUi() {
   var el = document.getElementById('baseBtn');
@@ -932,15 +955,15 @@ function updateTiles() {
       img.onerror = function() {
         if (tileFailHandled) return;
         tileFailHandled = true;
-        // Some devices/networks block specific Esri hosts/layers.
+        // Some devices/networks block specific hosts/layers.
         // Auto-fallback keeps the map usable instead of "map data not available".
-        if (S.basemap === 'gray') {
-          S.basemap = 'topo';
-          syncBasemapUi();
-          if (S.origin) save();
-          toast('GRAY MAP UNAVAILABLE - SWITCHED TO TOPO');
-          setTimeout(function(){ updateTiles(); draw(); }, 0);
-        }
+        var i = BASEMAP_ORDER.indexOf(S.basemap);
+        if (i < 0) i = 0;
+        S.basemap = BASEMAP_ORDER[(i + 1) % BASEMAP_ORDER.length];
+        syncBasemapUi();
+        if (S.origin) save();
+        toast('MAP SOURCE BLOCKED - SWITCHED TO ' + document.getElementById('baseBtn').textContent);
+        setTimeout(function(){ updateTiles(); draw(); }, 0);
       };
       img.draggable = false;
       img.loading = 'lazy';
