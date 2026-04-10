@@ -534,8 +534,8 @@ function startGPS() {
 function onPos(p) {
   var lat = p.coords.latitude;
   var lon = p.coords.longitude;
-  var spd = p.coords.speed;
-  var hdg = p.coords.heading;
+  var spd = p.coords.speed;    // m/s or null
+  var hdg = p.coords.heading;  // degrees or null
   var acc = p.coords.accuracy;
 
   if (!origin) {
@@ -550,21 +550,43 @@ function onPos(p) {
 
   if (following) { camMX = curMX; camMY = curMY; }
 
-  document.getElementById('mSpeed').textContent = (spd ? spd * 2.23694 : 0).toFixed(1);
+  // Speed: must be a real number > 0.9 m/s (~2 mph) to count as moving
+  var spdMph = (spd != null && spd > 0) ? spd * 2.23694 : 0;
+  document.getElementById('mSpeed').textContent = spdMph.toFixed(1);
 
-  if (hdg !== null && hdg !== undefined) {
-    heading = hdg;
-    document.getElementById('mHead').textContent = Math.round(hdg);
+  // Smooth heading with a rolling average to prevent jitter
+  if (hdg != null && spd != null && spd > 0.5) {
+    if (heading === null) {
+      heading = hdg;
+    } else {
+      // Circular mean to handle 0/360 wrap
+      var diff = hdg - heading;
+      if (diff > 180) diff -= 360;
+      if (diff < -180) diff += 360;
+      heading = (heading + diff * 0.3 + 360) % 360;
+    }
+    document.getElementById('mHead').textContent = Math.round(heading);
     var n = document.getElementById('needle');
-    if (n) n.setAttribute('transform', 'rotate(' + hdg + ' 22 22)');
+    if (n) n.setAttribute('transform', 'rotate(' + heading + ' 22 22)');
   }
 
   if (recording) {
-    // Only record when moving > 1 mph (0.44 m/s) to avoid GPS drift squiggles
-    var moving = !spd || spd > 0.44;
-    if (moving) {
-      curPass.push({ mx: curMX, my: curMY });
-      calcArea();
+    // Only record if ACTUALLY moving: speed > 0.9 m/s (~2 mph)
+    var isMoving = (spd != null && spd > 0.9);
+    if (isMoving) {
+      // Also require minimum distance from last recorded point (5 meters)
+      // to avoid recording GPS micro-jitter at low speed
+      var minDistM = 3;
+      var shouldRecord = true;
+      if (curPass.length > 0) {
+        var last = curPass[curPass.length - 1];
+        var dx = curMX - last.mx, dy = curMY - last.my;
+        if (Math.sqrt(dx*dx + dy*dy) < minDistM) shouldRecord = false;
+      }
+      if (shouldRecord) {
+        curPass.push({ mx: curMX, my: curMY });
+        calcArea();
+      }
     }
   }
   draw();
