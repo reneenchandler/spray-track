@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Spray Track</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --green: #39FF14;
+  --red: #FF3B30;
+  --amber: #FFB800;
+  --bg: #0a0f0a;
+  --panel: #111811;
+  --border: #1e2e1e;
+  --text: #c8e6c8;
+  --muted: #4a6a4a;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, sans-serif;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* SETUP */
+#setup {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  gap: 16px;
+}
+#setup.gone { display: none; }
+#setup h1 {
+  font-size: 48px;
+  font-weight: 900;
+  color: var(--green);
+  line-height: 1;
+  text-align: center;
+}
+#setup p {
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: var(--muted);
+  text-align: center;
+}
+.sfield { width: 100%; max-width: 300px; }
+.sfield label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.sfield input, .sfield select {
+  width: 100%;
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 20px;
+  padding: 12px 14px;
+  outline: none;
+  -webkit-appearance: none;
+  font-family: 'Courier New', monospace;
+}
+.sfield input:focus, .sfield select:focus { border-color: var(--green); }
+#goBtn {
+  width: 100%;
+  max-width: 300px;
+  background: var(--green);
+  border: none;
+  border-radius: 8px;
+  color: #000;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  padding: 18px;
+  cursor: pointer;
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+#goBtn:active { opacity: 0.8; }
+.snote {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.6;
+  max-width: 260px;
+}
+
+/* STATUS BAR */
+#statusBar {
+  background: var(--panel);
+  border-bottom: 2px solid var(--border);
+  padding: 8px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+.logo {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--green);
+  letter-spacing: 2px;
+}
+#gpsStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.dot.on { background: var(--green); animation: blink 1.5s infinite; }
+.dot.searching { background: var(--amber); animation: blink 0.8s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* MAP */
+#mapWrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #0d150d;
+  background-image:
+    linear-gradient(rgba(57,255,20,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(57,255,20,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+canvas {
+  position: absolute; top:0; left:0;
+  width: 100%; height: 100%;
+  touch-action: none;
+}
+#passBadge {
+  position: absolute; top: 12px; right: 12px;
+  background: rgba(10,15,10,0.9);
+  border: 1px solid var(--green);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--green);
+  letter-spacing: 1px;
+  pointer-events: none;
+}
+#followBtn {
+  position: absolute; top: 12px; left: 12px;
+  background: rgba(10,15,10,0.9);
+  border: 2px solid var(--green);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--green);
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+#followBtn.off { border-color: var(--muted); color: var(--muted); }
+#orientBtn {
+  position: absolute; top: 56px; left: 12px;
+  background: rgba(10,15,10,0.9);
+  border: 2px solid var(--green);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--green);
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+#orientBtn.north { border-color: var(--amber); color: var(--amber); }
+#compass {
+  position: absolute; bottom: 16px; right: 16px;
+  width: 44px; height: 44px;
+  pointer-events: none;
+}
+
+/* METRICS */
+#metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  background: var(--panel);
+  border-top: 2px solid var(--border);
+  flex-shrink: 0;
+}
+.metric { padding: 10px 8px; text-align: center; border-right: 1px solid var(--border); }
+.metric:last-child { border-right: none; }
+.mlabel { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 2px; }
+.mval { font-family: 'Courier New', monospace; font-size: 24px; color: var(--green); line-height: 1; }
+.munit { font-size: 10px; color: var(--muted); letter-spacing: 1px; }
+
+/* SWATH */
+#swathRow {
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+#swathRow span { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--muted); flex-shrink: 0; }
+#swathSlider {
+  flex: 1; -webkit-appearance: none;
+  height: 4px; background: var(--border); border-radius: 2px; outline: none;
+}
+#swathSlider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 28px; height: 28px;
+  border-radius: 50%; background: var(--green);
+}
+#swathVal { font-family: 'Courier New', monospace; font-size: 14px; color: var(--green); min-width: 50px; text-align: right; }
+
+/* MODE TOGGLE */
+#modeRow {
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-shrink: 0;
+}
+.modeBtn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border);
+  color: var(--muted);
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  padding: 10px 8px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+.modeBtn:last-child { border-right: none; }
+.modeBtn.active { color: var(--green); background: rgba(57,255,20,0.07); }
+.modeBtn:active { opacity: 0.7; }
+
+/* BUTTONS */
+#controls {
+  background: var(--panel);
+  border-top: 2px solid var(--border);
+  padding: 10px 12px 24px;
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.btn {
+  flex: 1; border: 2px solid var(--border); border-radius: 6px;
+  background: transparent; color: var(--text);
+  font-size: 15px; font-weight: 700; letter-spacing: 1px;
+  padding: 16px 8px; text-transform: uppercase; cursor: pointer;
+}
+.btn:active { opacity: 0.7; }
+.btn-go { flex: 2; background: var(--green); border-color: var(--green); color: #000; font-size: 17px; }
+.btn-go.active { background: var(--red); border-color: var(--red); color: #fff; }
+.btn-clear { border-color: rgba(255,59,48,0.5); color: rgba(255,59,48,0.8); }
+.btn-undo  { border-color: var(--muted); color: var(--muted); }
+
+/* LIGHTBAR */
+#lightbar {
+  position: absolute;
+  top: 10px; left: 50%; transform: translateX(-50%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 30;
+  pointer-events: none;
+}
+#lightbar.visible { display: flex; }
+#lbTrack {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.lbDot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #1a2a1a;
+  border: 1px solid #1e2e1e;
+  flex-shrink: 0;
+}
+.lbDot.lit-green { background: #39FF14; box-shadow: 0 0 6px #39FF14; border-color: #39FF14; }
+.lbDot.lit-amber { background: #FFB800; box-shadow: 0 0 6px #FFB800; border-color: #FFB800; }
+.lbDot.lit-red   { background: #FF3B30; box-shadow: 0 0 6px #FF3B30; border-color: #FF3B30; }
+.lbDot.center-mark { border-color: #39FF14; background: #0a1a0a; width: 16px; height: 16px; }
+#lbText {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: #fff;
+  background: rgba(10,15,10,0.85);
+  padding: 3px 10px;
+  border-radius: 3px;
+  border: 1px solid #1e2e1e;
+}
+
+/* TOAST */
+#toast {
+  position: fixed; bottom: 130px; left: 50%; transform: translateX(-50%);
+  background: rgba(10,15,10,0.95); border: 1px solid var(--green); color: var(--green);
+  font-family: 'Courier New', monospace; font-size: 12px; letter-spacing: 2px;
+  padding: 10px 20px; border-radius: 4px; z-index: 500;
+  opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap;
+}
+#toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup">
+  <h1>SPRAY<br>TRACK</h1>
+  <p>FIELD GUIDANCE SYSTEM</p>
+  <div class="sfield">
+    <label>Swath Width (ft)</label>
+    <input type="number" id="inSwath" value="40" min="1" max="200" inputmode="numeric">
+  </div>
+  <div class="sfield">
+    <label>Field Name (optional)</label>
+    <input type="text" id="inField" placeholder="e.g. North 40" autocomplete="off">
+  </div>
+  <div class="sfield">
+    <label>Units</label>
+    <select id="inUnits">
+      <option value="acres">Acres</option>
+      <option value="hectares">Hectares</option>
+    </select>
+  </div>
+  <button id="goBtn">START SESSION &rarr;</button>
+  <div class="snote">Allow location access when prompted.<br>Works best outdoors with clear sky view.</div>
+</div>
+
+<!-- APP -->
+<div id="statusBar">
+  <div class="logo">SPRAY TRACK</div>
+  <div id="gpsStatus">
+    <div class="dot searching" id="gpsDot"></div>
+    <span id="gpsText">ACQUIRING</span>
+  </div>
+</div>
+
+<div id="mapWrap">
+  <canvas id="cv"></canvas>
+  <div id="passBadge">0 PASSES</div>
+  <button id="followBtn">&#128205; FOLLOWING</button>
+  <button id="orientBtn">&#8593; COURSE-UP</button>
+  <div id="lightbar">
+    <div id="lbTrack"></div>
+    <div id="lbText">ON TRACK</div>
+  </div>
+  <svg id="compass" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="22" cy="22" r="20" stroke="#1e2e1e" stroke-width="2"/>
+    <text x="22" y="11" text-anchor="middle" fill="#FF3B30" font-family="monospace" font-size="9" font-weight="bold">N</text>
+    <text x="22" y="39" text-anchor="middle" fill="#4a6a4a" font-family="monospace" font-size="8">S</text>
+    <text x="7"  y="26" text-anchor="middle" fill="#4a6a4a" font-family="monospace" font-size="8">W</text>
+    <text x="37" y="26" text-anchor="middle" fill="#4a6a4a" font-family="monospace" font-size="8">E</text>
+    <g id="needle">
+      <polygon points="22,8 24,22 22,20 20,22" fill="#FF3B30"/>
+      <polygon points="22,36 24,22 22,24 20,22" fill="#4a6a4a"/>
+    </g>
+  </svg>
+</div>
+
+<div id="metrics">
+  <div class="metric">
+    <div class="mlabel">Speed</div>
+    <div class="mval" id="mSpeed">0.0</div>
+    <div class="munit">MPH</div>
+  </div>
+  <div class="metric">
+    <div class="mlabel">Covered</div>
+    <div class="mval" id="mArea">0.00</div>
+    <div class="munit" id="mUnit">ACRES</div>
+  </div>
+  <div class="metric">
+    <div class="mlabel">Heading</div>
+    <div class="mval" id="mHead">---</div>
+    <div class="munit">DEG</div>
+  </div>
+</div>
+
+<div id="swathRow">
+  <span>SWATH</span>
+  <input type="range" id="swathSlider" min="5" max="120" step="1" value="40">
+  <div id="swathVal">40 ft</div>
+</div>
+
+<div id="modeRow">
+  <button class="modeBtn active" id="modePass" onclick="setMode('pass')">&#9654;&#9654; PASS MODE</button>
+  <button class="modeBtn"        id="modeLoop" onclick="setMode('loop')">&#8635; LOOP MODE</button>
+</div>
+
+<div id="controls">
+  <button class="btn btn-clear" id="clearBtn">CLEAR</button>
+  <button class="btn btn-go"    id="recBtn">&#9654; START PASS</button>
+  <button class="btn btn-undo"  id="undoBtn">UNDO</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── STATE ──
+var swathFt   = 40;
+var units     = 'acres';
+var recording = false;
+var passes    = [];      // each entry: { pts: [...], loop: bool }
+var curPass   = [];
+var gpsReady  = false;
+var heading   = null;
+var origin    = null;
+var curMX     = 0, curMY = 0;
+var camMX     = 0, camMY = 0;
+var scale     = 4;
+var following = true;
+var courseUp  = true;
+var loopMode  = false;   // false = pass mode, true = loop mode
+var cv, ctx;
+
+// ── SETUP ──
+document.getElementById('goBtn').addEventListener('click', function() {
+  swathFt = parseFloat(document.getElementById('inSwath').value) || 40;
+  units   = document.getElementById('inUnits').value;
+  document.getElementById('swathSlider').value = swathFt;
+  document.getElementById('swathVal').textContent = swathFt + ' ft';
+  document.getElementById('mUnit').textContent = units === 'acres' ? 'ACRES' : 'HECT';
+  document.getElementById('setup').classList.add('gone');
+  initCanvas();
+  startGPS();
+  doWakeLock();
+  initOrientation();
+});
+
+// ── MODE ──
+function setMode(m) {
+  if (recording) { toast('STOP CURRENT ' + (loopMode ? 'LOOP' : 'PASS') + ' FIRST'); return; }
+  loopMode = (m === 'loop');
+  document.getElementById('modePass').classList.toggle('active', !loopMode);
+  document.getElementById('modeLoop').classList.toggle('active',  loopMode);
+  var btn = document.getElementById('recBtn');
+  btn.textContent = loopMode ? '\u25b6 START LOOP' : '\u25b6 START PASS';
+  toast(loopMode ? 'LOOP MODE: DRIVE FIELD OUTLINE' : 'PASS MODE: DRIVE STRAIGHT LINES');
+}
+
+
+function initCanvas() {
+  cv  = document.getElementById('cv');
+  ctx = cv.getContext('2d');
+  sizeCanvas();
+  window.addEventListener('resize', sizeCanvas);
+  cv.addEventListener('touchstart', onTS, { passive: false });
+  cv.addEventListener('touchmove',  onTM, { passive: false });
+  cv.addEventListener('touchend',   function() { lt = null; pd = null; });
+}
+
+function sizeCanvas() {
+  var wrap = document.getElementById('mapWrap');
+  var dpr  = window.devicePixelRatio || 1;
+  cv.width  = wrap.clientWidth  * dpr;
+  cv.height = wrap.clientHeight * dpr;
+  cv.style.width  = wrap.clientWidth  + 'px';
+  cv.style.height = wrap.clientHeight + 'px';
+  draw();
+}
+
+// ── TOUCH ──
+var lt = null, pd = null;
+
+function onTS(e) {
+  if (e.touches.length === 1) {
+    lt = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    pd = null;
+  } else if (e.touches.length === 2) {
+    pd = tdist(e.touches);
+    lt = null;
+  }
+}
+
+function onTM(e) {
+  e.preventDefault();
+  if (e.touches.length === 1 && lt) {
+    camMX -= (e.touches[0].clientX - lt.x) / scale;
+    camMY += (e.touches[0].clientY - lt.y) / scale;
+    lt = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    setFollow(false);
+    draw();
+  } else if (e.touches.length === 2 && pd) {
+    var d = tdist(e.touches);
+    scale = Math.max(0.3, Math.min(50, scale * d / pd));
+    pd = d;
+    draw();
+  }
+}
+
+function tdist(t) {
+  var dx = t[0].clientX - t[1].clientX;
+  var dy = t[0].clientY - t[1].clientY;
+  return Math.sqrt(dx*dx + dy*dy);
+}
+
+// ── GPS ──
+function startGPS() {
+  if (!navigator.geolocation) { toast('NO GPS ON THIS DEVICE'); return; }
+  navigator.geolocation.watchPosition(onPos, onErr, {
+    enableHighAccuracy: true,
+    maximumAge: 500,
+    timeout: 15000
+  });
+}
+
+function onPos(p) {
+  var lat = p.coords.latitude;
+  var lon = p.coords.longitude;
+  var spd = p.coords.speed;    // m/s or null
+  var hdg = p.coords.heading;  // degrees or null
+  var acc = p.coords.accuracy;
+
+  if (!origin) {
+    origin = { lat: lat, lon: lon };
+    gpsReady = true;
+    document.getElementById('gpsDot').className = 'dot on';
+  }
+  document.getElementById('gpsText').textContent = 'GPS \u00b1' + Math.round(acc) + 'ft';
+
+  curMX = mxFromLon(lon);
+  curMY = myFromLat(lat);
+
+  if (following) { camMX = curMX; camMY = curMY; }
+
+  // Speed: must be a real number > 0.9 m/s (~2 mph) to count as moving
+  var spdMph = (spd != null && spd > 0) ? spd * 2.23694 : 0;
+  document.getElementById('mSpeed').textContent = spdMph.toFixed(1);
+
+  // Smooth heading with a rolling average to prevent jitter
+  if (hdg != null && spd != null && spd > 0.5) {
+    if (heading === null) {
+      heading = hdg;
+    } else {
+      // Circular mean to handle 0/360 wrap
+      var diff = hdg - heading;
+      if (diff > 180) diff -= 360;
+      if (diff < -180) diff += 360;
+      heading = (heading + diff * 0.3 + 360) % 360;
+    }
+    document.getElementById('mHead').textContent = Math.round(heading);
+    var n = document.getElementById('needle');
+    if (n) n.setAttribute('transform', 'rotate(' + heading + ' 22 22)');
+  }
+
+  if (recording) {
+    // Only record if ACTUALLY moving: speed > 0.9 m/s (~2 mph)
+    var isMoving = (spd != null && spd > 0.9);
+    if (isMoving) {
+      // Also require minimum distance from last recorded point (5 meters)
+      // to avoid recording GPS micro-jitter at low speed
+      var minDistM = 3;
+      var shouldRecord = true;
+      if (curPass.length > 0) {
+        var last = curPass[curPass.length - 1];
+        var dx = curMX - last.mx, dy = curMY - last.my;
+        if (Math.sqrt(dx*dx + dy*dy) < minDistM) shouldRecord = false;
+      }
+      if (shouldRecord) {
+        curPass.push({ mx: curMX, my: curMY });
+        calcArea();
+      }
+    }
+  }
+  draw();
+  updateLightbar();
+}
+
+function onErr(e) {
+  document.getElementById('gpsDot').className = 'dot';
+  document.getElementById('gpsText').textContent = e.code === 1 ? 'DENIED' : 'NO GPS';
+  if (e.code === 1) toast('ALLOW LOCATION IN SETTINGS');
+}
+
+function mxFromLon(lon) {
+  var R = 6371000;
+  return R * (lon - origin.lon) * Math.PI / 180 * Math.cos(origin.lat * Math.PI / 180);
+}
+function myFromLat(lat) {
+  return 6371000 * (lat - origin.lat) * Math.PI / 180;
+}
+
+// ── DRAW ──
+function draw() {
+  if (!cv || !ctx) return;
+  var W   = cv.width, H = cv.height;
+  var dpr = window.devicePixelRatio || 1;
+  var sc  = scale * dpr;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // In course-up mode: tractor dot is pinned to lower-center.
+  // Camera is always locked to tractor position (camMX/camMY = curMX/curMY).
+  // The whole canvas rotates around the dot so heading points up.
+  // In north-up mode: dot is screen center, camera pans freely.
+  var dotX = W / 2;
+  var dotY = courseUp ? H * 0.65 : H / 2;
+
+  // In course-up, always lock camera to current position
+  var refMX = (courseUp || following) ? curMX : camMX;
+  var refMY = (courseUp || following) ? curMY : camMY;
+
+  function wx(mx) { return dotX + (mx - refMX) * sc; }
+  function wy(my) { return dotY - (my - refMY) * sc; }
+
+  ctx.save();
+  if (courseUp && heading !== null) {
+    var rotRad = -heading * Math.PI / 180;
+    ctx.translate(dotX, dotY);
+    ctx.rotate(rotRad);
+    ctx.translate(-dotX, -dotY);
+  }
+
+  var swM = swathFt * 0.3048;
+  for (var i = 0; i < passes.length; i++) {
+    drawPass(passes[i].pts, swM, sc, wx, wy, false, passes[i].loop);
+  }
+  if (curPass.length > 1) drawPass(curPass, swM, sc, wx, wy, true, loopMode);
+
+  if (gpsReady) {
+    var px = wx(curMX), py = wy(curMY);
+    // Dot radius = ~1/6 of swath width in pixels, min 4px, max 10px
+    var swathPx = swathFt * 0.3048 * sc;
+    var r = Math.min(10, Math.max(4, swathPx / 6)) * dpr;
+
+    ctx.beginPath();
+    ctx.arc(px, py, r * 2.2, 0, Math.PI*2);
+    ctx.fillStyle = recording ? 'rgba(255,59,48,0.18)' : 'rgba(57,255,20,0.18)';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, Math.PI*2);
+    ctx.fillStyle = recording ? '#FF3B30' : '#39FF14';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, Math.PI*2);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.5 * dpr;
+    ctx.stroke();
+
+    // In course-up the arrow always points straight up (forward)
+    if (heading !== null) {
+      var arrowRad = courseUp ? -Math.PI/2 : (heading - 90) * Math.PI / 180;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px + Math.cos(arrowRad)*55*dpr, py + Math.sin(arrowRad)*55*dpr);
+      ctx.strokeStyle = recording ? '#FF3B30' : '#39FF14';
+      ctx.lineWidth = 3 * dpr;
+      ctx.setLineDash([7*dpr, 5*dpr]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  ctx.restore();
+
+  // North indicator (always drawn unrotated, top-right area)
+  if (courseUp && heading !== null) {
+    drawNorthIndicator(W, H, dpr);
+  }
+}
+
+// Small N arrow showing true north direction when in course-up mode
+function drawNorthIndicator(W, H, dpr) {
+  var cx = W - 36*dpr, cy = 36*dpr, r = 18*dpr;
+  var northRad = heading * Math.PI / 180 - Math.PI/2;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(10,15,10,0.75)';
+  ctx.fill();
+  ctx.strokeStyle = '#1e2e1e';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  // N arrow tip
+  var tipX = Math.cos(northRad) * (r - 4);
+  var tipY = Math.sin(northRad) * (r - 4);
+  var tailX = -tipX * 0.6, tailY = -tipY * 0.6;
+  ctx.beginPath();
+  ctx.moveTo(tailX, tailY);
+  ctx.lineTo(tipX, tipY);
+  ctx.strokeStyle = '#FF3B30';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  // N label
+  ctx.fillStyle = '#FF3B30';
+  ctx.font = 'bold ' + (10*dpr) + 'px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('N', tipX * 0.55, tipY * 0.55);
+  ctx.restore();
+}
+
+function drawPass(pts, swM, sc, wx, wy, active, isLoop) {
+  if (pts.length < 2) return;
+  var half = swM / 2 * sc;
+
+  if (isLoop && pts.length > 3) {
+    // For loops: draw the driven centerline as a filled closed polygon
+    // Inner and outer offset rings
+    var L = [], R = [];
+    var allPts = pts.concat([pts[0]]); // close the loop
+    for (var i = 0; i < allPts.length - 1; i++) {
+      var dmx = allPts[i+1].mx - allPts[i].mx;
+      var dmy = allPts[i+1].my - allPts[i].my;
+      var len = Math.sqrt(dmx*dmx + dmy*dmy) || 1;
+      var nx =  dmy/len * half;
+      var ny =  dmx/len * half;
+      var px = wx(allPts[i].mx), py = wy(allPts[i].my);
+      L.push({ x: px-nx, y: py-ny });
+      R.push({ x: px+nx, y: py+ny });
+    }
+    // Outer ring
+    ctx.beginPath();
+    ctx.moveTo(R[0].x, R[0].y);
+    for (var j = 1; j < R.length; j++) ctx.lineTo(R[j].x, R[j].y);
+    ctx.closePath();
+    // Inner ring (drawn as a hole using evenodd)
+    ctx.moveTo(L[0].x, L[0].y);
+    for (var k = 1; k < L.length; k++) ctx.lineTo(L[k].x, L[k].y);
+    ctx.closePath();
+    ctx.fillStyle = active ? 'rgba(57,255,20,0.35)' : 'rgba(57,255,20,0.20)';
+    ctx.fill('evenodd');
+    ctx.strokeStyle = active ? '#39FF14' : 'rgba(57,255,20,0.7)';
+    ctx.lineWidth = (active ? 2 : 1.5) * (window.devicePixelRatio || 1);
+    // Draw centerline
+    ctx.beginPath();
+    ctx.moveTo(wx(pts[0].mx), wy(pts[0].my));
+    for (var m = 1; m < pts.length; m++) ctx.lineTo(wx(pts[m].mx), wy(pts[m].my));
+    ctx.closePath();
+    ctx.stroke();
+    return;
+  }
+
+  // Standard pass rendering
+  var L2 = [], R2 = [];
+  for (var i = 0; i < pts.length; i++) {
+    var dmx, dmy;
+    if (i < pts.length - 1) { dmx = pts[i+1].mx - pts[i].mx; dmy = pts[i+1].my - pts[i].my; }
+    else                    { dmx = pts[i].mx - pts[i-1].mx; dmy = pts[i].my - pts[i-1].my; }
+    var len = Math.sqrt(dmx*dmx + dmy*dmy) || 1;
+    var nx =  dmy/len * half;
+    var ny =  dmx/len * half;
+    var px = wx(pts[i].mx), py = wy(pts[i].my);
+    L2.push({ x: px-nx, y: py-ny });
+    R2.push({ x: px+nx, y: py+ny });
+  }
+  var poly = L2.concat(R2.slice().reverse());
+  ctx.beginPath();
+  ctx.moveTo(poly[0].x, poly[0].y);
+  for (var j = 1; j < poly.length; j++) ctx.lineTo(poly[j].x, poly[j].y);
+  ctx.closePath();
+  ctx.fillStyle   = active ? 'rgba(57,255,20,0.35)' : 'rgba(57,255,20,0.18)';
+  ctx.fill();
+  ctx.strokeStyle = active ? '#39FF14' : 'rgba(57,255,20,0.6)';
+  ctx.lineWidth   = (active ? 2 : 1.5) * (window.devicePixelRatio || 1);
+  ctx.stroke();
+}
+
+// ── LIGHTBAR ──
+function updateLightbar() {
+  var lb = document.getElementById('lightbar');
+  var lbText = document.getElementById('lbText');
+  var lbTrack = document.getElementById('lbTrack');
+
+  if (passes.length === 0 || !gpsReady) {
+    lb.classList.remove('visible');
+    return;
+  }
+
+  var swM = swathFt * 0.3048;
+  var bestLat = Infinity, bestPass = null;
+
+  for (var i = 0; i < passes.length; i++) {
+    var info = distToPass(passes[i].pts, curMX, curMY);
+    if (Math.abs(info.lateral) < Math.abs(bestLat)) {
+      bestLat = info.lateral;
+      bestPass = passes[i];
+    }
+  }
+
+  if (!bestPass) { lb.classList.remove('visible'); return; }
+
+  // For loops: ideal is one swath inward (toward center), so same sign logic applies.
+  // idealOffset: how far he needs to move laterally to be on the next ideal line
+  var idealOffset;
+  if (bestLat >= 0) {
+    idealOffset = swM - bestLat;
+  } else {
+    idealOffset = -(swM + bestLat);
+  }
+
+  var errFt = idealOffset / 0.3048;
+
+  var DOTS = 9, mid = 4;
+  var maxErrFt = swathFt * 0.55;
+  var deflect = Math.round((errFt / maxErrFt) * mid);
+  deflect = Math.max(-mid, Math.min(mid, deflect));
+
+  lbTrack.innerHTML = '';
+  for (var d = 0; d < DOTS; d++) {
+    var dot = document.createElement('div');
+    dot.className = 'lbDot' + (d === mid ? ' center-mark' : '');
+    var lit = false;
+    if (deflect > 0 && d > mid && d <= mid + deflect) lit = true;
+    if (deflect < 0 && d < mid && d >= mid + deflect) lit = true;
+    if (deflect === 0 && d === mid) lit = true;
+    if (lit) {
+      var absDef = Math.abs(deflect);
+      dot.classList.add(absDef <= 1 ? 'lit-green' : absDef <= 2 ? 'lit-amber' : 'lit-red');
+    }
+    lbTrack.appendChild(dot);
+  }
+
+  var absErr = Math.abs(errFt);
+  if (absErr < 2) {
+    lbText.textContent = '\u2713 ON TRACK';
+    lbText.style.color = '#39FF14';
+  } else {
+    var dir = errFt > 0 ? '\u2190 STEER LEFT' : 'STEER RIGHT \u2192';
+    lbText.textContent = dir + '  ' + absErr.toFixed(0) + 'ft';
+    lbText.style.color = absErr > swathFt * 0.3 ? '#FF3B30' : '#FFB800';
+  }
+
+  lb.classList.add('visible');
+}
+
+// Returns signed lateral distance from pass centerline (+ = right, - = left)
+// using the pass's average heading to define left/right
+function distToPass(pass, mx, my) {
+  var minDist = Infinity, bestLat = 0;
+  for (var i = 0; i < pass.length - 1; i++) {
+    var ax = pass[i].mx,   ay = pass[i].my;
+    var bx = pass[i+1].mx, by = pass[i+1].my;
+    var abx = bx - ax, aby = by - ay;
+    var len2 = abx*abx + aby*aby;
+    if (len2 === 0) continue;
+    var t = Math.max(0, Math.min(1, ((mx-ax)*abx + (my-ay)*aby) / len2));
+    var closestX = ax + t*abx, closestY = ay + t*aby;
+    var dx = mx - closestX, dy = my - closestY;
+    var dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < minDist) {
+      minDist = dist;
+      // Cross product to get sign (right-hand rule: + = right of travel dir)
+      var cross = abx * dy - aby * dx;
+      bestLat = cross >= 0 ? dist : -dist;
+    }
+  }
+  return { lateral: bestLat };
+}
+
+// ── AREA ──
+function calcArea() {
+  var swM = swathFt * 0.3048;
+  var total = 0;
+  var all = recording ? passes.concat([{ pts: curPass, loop: loopMode }]) : passes;
+  for (var i = 0; i < all.length; i++) {
+    var pass = all[i].pts;
+    for (var j = 1; j < pass.length; j++) {
+      var dx = pass[j].mx - pass[j-1].mx;
+      var dy = pass[j].my - pass[j-1].my;
+      total += Math.sqrt(dx*dx + dy*dy) * swM;
+    }
+  }
+  var area = units === 'acres' ? total / 4046.86 : total / 10000;
+  document.getElementById('mArea').textContent = area.toFixed(2);
+}
+
+function updateBadge() {
+  var loops = passes.filter(function(p) { return p.loop; }).length;
+  var pases = passes.length - loops;
+  var parts = [];
+  if (pases > 0) parts.push(pases + (pases === 1 ? ' PASS' : ' PASSES'));
+  if (loops > 0) parts.push(loops + (loops === 1 ? ' LOOP' : ' LOOPS'));
+  document.getElementById('passBadge').textContent = parts.length ? parts.join(' · ') : '0 PASSES';
+}
+
+// ── RECORD ──
+document.getElementById('recBtn').addEventListener('click', function() {
+  if (!gpsReady) { toast('WAITING FOR GPS'); return; }
+  if (!recording) {
+    recording = true;
+    curPass = [];
+    this.textContent = loopMode ? '\u23f9 END LOOP' : '\u23f9 END PASS';
+    this.classList.add('active');
+    setFollow(true);
+    toast(loopMode ? 'LOOP STARTED — DRIVE FIELD EDGE' : 'PASS STARTED');
+  } else {
+    recording = false;
+    if (curPass.length > 1) {
+      passes.push({ pts: curPass.slice(), loop: loopMode });
+      updateBadge();
+      calcArea();
+      toast((loopMode ? 'LOOP ' : 'PASS ') + passes.length + ' SAVED');
+    } else {
+      toast('TOO SHORT \u2014 DRIVE FIRST');
+    }
+    curPass = [];
+    this.textContent = loopMode ? '\u25b6 START LOOP' : '\u25b6 START PASS';
+    this.classList.remove('active');
+    draw();
+  }
+});
+
+document.getElementById('undoBtn').addEventListener('click', function() {
+  if (recording) {
+    recording = false;
+    curPass = [];
+    var btn = document.getElementById('recBtn');
+    btn.textContent = '\u25b6 START PASS';
+    btn.classList.remove('active');
+    toast('PASS CANCELLED');
+    draw();
+    return;
+  }
+  if (passes.length === 0) { toast('NOTHING TO UNDO'); return; }
+  passes.pop();
+  updateBadge();
+  calcArea();
+  toast('LAST PASS REMOVED');
+  draw();
+});
+
+document.getElementById('clearBtn').addEventListener('click', function() {
+  if (passes.length === 0 && curPass.length === 0) { toast('NOTHING TO CLEAR'); return; }
+  if (!confirm('Clear all passes?')) return;
+  passes = []; curPass = []; recording = false;
+  var btn = document.getElementById('recBtn');
+  btn.textContent = '\u25b6 START PASS';
+  btn.classList.remove('active');
+  document.getElementById('mArea').textContent = '0.00';
+  document.getElementById('lightbar').classList.remove('visible');
+  updateBadge();
+  draw();
+  toast('CLEARED');
+});
+
+// ── SWATH ──
+document.getElementById('swathSlider').addEventListener('input', function() {
+  swathFt = parseFloat(this.value);
+  document.getElementById('swathVal').textContent = swathFt + ' ft';
+  if (ctx) { calcArea(); draw(); }
+});
+
+// ── ORIENT TOGGLE ──
+document.getElementById('orientBtn').addEventListener('click', function() {
+  courseUp = !courseUp;
+  if (courseUp) {
+    this.textContent = '\u2191 COURSE-UP';
+    this.classList.remove('north');
+    document.getElementById('followBtn').textContent = '\ud83d\udccd COURSE-UP';
+    document.getElementById('followBtn').classList.remove('off');
+    toast('COURSE-UP ON \u2014 TRAVEL DIRECTION = UP');
+  } else {
+    this.textContent = '\u2191 NORTH-UP';
+    this.classList.add('north');
+    following = true;
+    document.getElementById('followBtn').textContent = '\ud83d\udccd FOLLOWING';
+    document.getElementById('followBtn').classList.remove('off');
+    toast('NORTH-UP MODE');
+  }
+  draw();
+});
+
+// ── FOLLOW ──
+document.getElementById('followBtn').addEventListener('click', function() {
+  setFollow(!following);
+});
+
+function setFollow(on) {
+  following = on;
+  var btn = document.getElementById('followBtn');
+  if (on || courseUp) {
+    btn.classList.remove('off');
+    btn.textContent = courseUp ? '\ud83d\udccd COURSE-UP' : '\ud83d\udccd FOLLOWING';
+    if (gpsReady) { camMX = curMX; camMY = curMY; draw(); }
+  } else {
+    btn.classList.add('off');
+    btn.textContent = '\ud83d\udccd FOLLOW';
+  }
+}
+
+// ── TOAST ──
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+// ── WAKE LOCK ──
+async function doWakeLock() {
+  if ('wakeLock' in navigator) {
+    try { await navigator.wakeLock.request('screen'); } catch(e) {}
+  }
+}
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') doWakeLock();
+});
+
+// ── ORIENTATION ──
+function initOrientation() {
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission()
+      .then(function(p) { if (p === 'granted') window.addEventListener('deviceorientation', onOrient); })
+      .catch(function() {});
+  } else {
+    window.addEventListener('deviceorientation', onOrient);
+  }
+}
+
+function onOrient(e) {
+  var h = e.webkitCompassHeading !== undefined ? e.webkitCompassHeading
+          : (e.alpha !== null ? 360 - e.alpha : null);
+  if (h !== null && heading === null) {
+    heading = h;
+    document.getElementById('mHead').textContent = Math.round(h);
+    var n = document.getElementById('needle');
+    if (n) n.setAttribute('transform', 'rotate(' + h + ' 22 22)');
+  }
+}
+</script>
+</body>
+</html>
