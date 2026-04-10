@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -12,74 +11,173 @@
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
 <style>
-* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
-html { background:#000 !important; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  background: #000 !important;
+  color-scheme: dark;
+}
+
 body {
-  background:#000 !important; color:#fff;
-  font-family:'Courier New',monospace;
-  min-height:100vh; min-height:100dvh;
-  display:flex; flex-direction:column;
-  align-items:center; justify-content:center;
-  padding:32px 24px; gap:0;
-  color-scheme:dark;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  gap: 0;
 }
+
+.appicon {
+  width: 96px;
+  height: 96px;
+  border-radius: 22px;
+  margin-bottom: 16px;
+  display: block;
+}
+
 .logo {
-  font-size:52px; font-weight:900; color:#fff;
-  line-height:1; text-align:center; letter-spacing:-1px;
-  font-family:system-ui,sans-serif; margin-bottom:6px;
+  font-size: 48px;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1;
+  text-align: center;
+  letter-spacing: -1px;
+  font-family: system-ui, sans-serif;
+  margin-bottom: 6px;
 }
-.sub { font-size:11px; letter-spacing:4px; color:#555; margin-bottom:36px; text-align:center; }
-.label { font-size:10px; letter-spacing:3px; color:#555; font-weight:700; margin-bottom:14px; text-align:center; }
-.versions { display:flex; flex-direction:column; gap:12px; width:100%; max-width:320px; }
+
+.sub {
+  font-size: 10px;
+  letter-spacing: 5px;
+  color: #555;
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+.label {
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: #555;
+  font-weight: 700;
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.versions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 340px;
+}
+
 .ver-btn {
-  display:flex; align-items:center; justify-content:space-between;
-  background:#111 !important; border:2px solid #333; border-radius:8px;
-  padding:18px 20px; text-decoration:none; color:#fff !important;
-  -webkit-appearance:none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #111;
+  border: 2px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 16px 18px;
+  text-decoration: none;
+  color: #fff;
+  -webkit-appearance: none;
+  cursor: pointer;
 }
-.ver-btn:active { background:#1a1a1a !important; }
-.ver-btn.latest { border-color:#FFE600; }
-.ver-left { text-align:left; }
-.ver-tag { font-size:11px; letter-spacing:2px; color:#555; font-weight:700; margin-bottom:4px; }
-.ver-btn.latest .ver-tag { color:#FFE600; }
-.ver-name { font-size:18px; font-weight:700; color:#fff; letter-spacing:1px; }
-.ver-desc { font-size:11px; color:#555; margin-top:3px; }
-.ver-arrow { font-size:20px; color:#444; }
-.ver-btn.latest .ver-arrow { color:#FFE600; }
+
+.ver-btn:active { background: #1a1a1a; }
+
+.ver-btn.latest { border-color: #FFE600; }
+
+.ver-left { text-align: left; flex: 1; }
+
+.ver-tag {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #555;
+  font-weight: 700;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.ver-btn.latest .ver-tag { color: #FFE600; }
+
+.ver-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  font-family: system-ui, sans-serif;
+  margin-bottom: 3px;
+}
+
+.ver-desc {
+  font-size: 11px;
+  color: #555;
+  font-family: 'Courier New', monospace;
+}
+
+.ver-arrow {
+  font-size: 18px;
+  color: #444;
+  margin-left: 12px;
+}
+
+.ver-btn.latest .ver-arrow { color: #FFE600; }
+
 .badge {
-  display:inline-block; background:#FFE600; color:#000;
-  font-size:9px; font-weight:900; letter-spacing:2px;
-  padding:2px 7px; border-radius:3px; margin-left:8px; vertical-align:middle;
+  display: inline-block;
+  background: #FFE600;
+  color: #000;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 8px;
+  vertical-align: middle;
 }
-.footer { margin-top:36px; font-size:10px; color:#444; letter-spacing:2px; text-align:center; }
-img.appicon {
-  width:90px; height:90px; border-radius:20px; margin-bottom:12px;
-  display:block;
+
+.footer {
+  margin-top: 36px;
+  font-size: 10px;
+  color: #444;
+  letter-spacing: 2px;
+  text-align: center;
 }
 </style>
 </head>
 <body>
-<img class="appicon" src="icon.png" alt="Spray Track Icon">
+
+<img class="appicon" src="icon.png" alt="" onerror="this.style.visibility='hidden'">
+
 <div class="logo">SPRAY<br>TRACK</div>
 <div class="sub">FIELD GUIDANCE SYSTEM</div>
+
 <div class="label">SELECT VERSION</div>
+
 <div class="versions">
+
   <a class="ver-btn latest" href="v3.html">
     <div class="ver-left">
       <div class="ver-tag">VERSION 3 <span class="badge">LATEST</span></div>
       <div class="ver-name">Satellite Map</div>
-      <div class="ver-desc">Fields, AB line, work log, compass</div>
+      <div class="ver-desc">Fields · AB line · Work log · Compass</div>
     </div>
     <div class="ver-arrow">→</div>
   </a>
+
   <a class="ver-btn" href="v2.html">
     <div class="ver-left">
       <div class="ver-tag">VERSION 2</div>
       <div class="ver-name">Stable</div>
-      <div class="ver-desc">Pass + loop, ghost line, lightbar</div>
+      <div class="ver-desc">Pass + loop · Ghost line · Lightbar</div>
     </div>
     <div class="ver-arrow">→</div>
   </a>
+
   <a class="ver-btn" href="v1.html">
     <div class="ver-left">
       <div class="ver-tag">VERSION 1</div>
@@ -88,7 +186,10 @@ img.appicon {
     </div>
     <div class="ver-arrow">→</div>
   </a>
+
 </div>
+
 <div class="footer">FREE &amp; OPEN SOURCE</div>
+
 </body>
 </html>
