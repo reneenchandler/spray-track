@@ -168,6 +168,7 @@ border: 2px solid #444; border-radius: 6px;
 color: #aaa; font-family: ‘Courier New’, monospace;
 font-size: 11px; font-weight: bold; letter-spacing: 1px;
 padding: 8px 12px; cursor: pointer; z-index: 10;
+-webkit-appearance: none;
 }
 .map-btn.on    { border-color: #FFE600; color: #FFE600; }
 .map-btn.amber { border-color: #FFB800; color: #FFB800; }
@@ -221,7 +222,7 @@ padding:7px 16px; display:flex; align-items:center; gap:10px;
 flex-shrink:0; cursor:pointer;
 }
 #swathBar span { font-size:10px; font-weight:700; letter-spacing:3px; color:#888; }
-#swathDisplay { flex:1; font-size:15px; color:#FFE600; text-align:right; }
+#swathDisplay { flex:1; font-size:16px; color:#fff; text-align:right; font-weight:700; }
 #swathEdit {
 display:none; position:fixed; inset:0; z-index:200;
 background:rgba(0,0,0,0.85); align-items:center; justify-content:center;
@@ -254,29 +255,30 @@ background:#000; border-top:1px solid #222;
 display:flex; flex-shrink:0;
 }
 .modeBtn {
-flex:1; background:transparent; border:none; border-right:1px solid #222;
-color:#888; font-family:‘Courier New’,monospace;
+flex:1; background:#000; border:none; border-right:1px solid #222;
+color:#aaa; font-family:‘Courier New’,monospace;
 font-size:11px; font-weight:bold; letter-spacing:1px;
 padding:10px 8px; cursor:pointer; text-transform:uppercase;
+-webkit-appearance: none;
 }
 .modeBtn:last-child { border-right:none; }
-.modeBtn.active { color:#FFE600; background:rgba(255,230,0,0.06); }
+.modeBtn.active { color:#FFE600; background:#0a0a00; }
 #controls {
 background:#000; border-top:2px solid #222;
 padding:10px 12px 20px; display:flex; gap:10px; flex-shrink:0;
 }
 .btn {
-flex:1; border:2px solid #333; border-radius:8px;
-background:transparent; color:#fff; font-size:13px; font-weight:700;
+flex:1; border:2px solid #444; border-radius:8px;
+background:#111; color:#fff; font-size:13px; font-weight:700;
 letter-spacing:1px; padding:15px 8px; text-transform:uppercase; cursor:pointer;
-font-family:‘Courier New’,monospace;
+font-family:‘Courier New’,monospace; -webkit-appearance:none;
 }
 .btn:active { opacity:0.7; }
 .btn-go { flex:2; background:#FFE600; border-color:#FFE600; color:#000; font-size:16px; font-weight:900; }
 .btn-go.rec { background:#FF3B30; border-color:#FF3B30; color:#fff; animation:recpulse 1.5s infinite; }
-@keyframes recpulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,59,48,0.4)} 50%{box-shadow:0 0 0 8px rgba(255,59,48,0)} }
-.btn-clear { border-color:rgba(255,59,48,0.4); color:rgba(255,59,48,0.8); }
-.btn-undo  { border-color:#888; color:#888; }
+@keyframes recpulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,59,48,0.5)} 50%{box-shadow:0 0 0 10px rgba(255,59,48,0)} }
+.btn-clear { border-color:#FF3B30; color:#FF3B30; background:rgba(255,59,48,0.08); }
+.btn-undo  { border-color:#555; color:#aaa; background:#111; }
 
 /* ── FIELDS SCREEN ── */
 #fieldsScreen { background:#000; }
@@ -1250,10 +1252,10 @@ function drawGhost(swM,sx,sy) {
 
 function drawNorth(W,H,dpr) {
   if (S.heading === null) return;
-  var r  = 28 * dpr;
-  // Bottom-right corner of map, just above the metrics bar
-  var cx = W - r - 12*dpr;
-  var cy = H - r - 12*dpr;
+  var r  = 30 * dpr;
+  // Bottom-right, clear of scale bar
+  var cx = W - r - 14*dpr;
+  var cy = H - r - 14*dpr;
 
   var na = S.courseUp
     ? -Math.PI/2 - (S.heading * Math.PI/180)
@@ -1261,33 +1263,36 @@ function drawNorth(W,H,dpr) {
 
   ctx.save(); ctx.translate(cx, cy);
 
-  // Solid black circle
+  // Black circle with border
   ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2);
   ctx.fillStyle = '#000'; ctx.fill();
-  ctx.strokeStyle = '#444'; ctx.lineWidth = 2*dpr; ctx.stroke();
+  ctx.strokeStyle = '#555'; ctx.lineWidth = 2*dpr; ctx.stroke();
 
-  // Cardinal labels
-  var lOff = r - 8*dpr;
-  ctx.font = 'bold ' + (9*dpr) + 'px monospace';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#666';
-  ctx.fillText('N', 0,    -lOff);
-  ctx.fillText('S', 0,     lOff);
-  ctx.fillText('E', lOff,  0);
-  ctx.fillText('W', -lOff, 0);
+  // Tick marks for cardinal directions
+  ['N','E','S','W'].forEach(function(label, i) {
+    var angle = i * Math.PI/2;
+    var tx = Math.cos(angle - Math.PI/2) * (r-8*dpr);
+    var ty = Math.sin(angle - Math.PI/2) * (r-8*dpr);
+    ctx.fillStyle = label === 'N' ? '#FF3B30' : '#666';
+    ctx.font = 'bold ' + (8*dpr) + 'px monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, tx, ty);
+  });
 
-  // Red north needle
-  var tx = Math.cos(na) * (r - 12*dpr);
-  var ty = Math.sin(na) * (r - 12*dpr);
+  // Red north needle pointing to true north
+  var tx = Math.cos(na) * (r - 14*dpr);
+  var ty = Math.sin(na) * (r - 14*dpr);
   ctx.beginPath();
-  ctx.moveTo(-tx*0.45, -ty*0.45);
+  ctx.moveTo(-tx*0.4, -ty*0.4);
   ctx.lineTo(tx, ty);
-  ctx.strokeStyle = '#FF3B30'; ctx.lineWidth = 3*dpr; ctx.stroke();
+  ctx.strokeStyle = '#FF3B30'; ctx.lineWidth = 3.5*dpr;
+  ctx.lineCap = 'round'; ctx.stroke();
 
-  // Heading in center
+  // Heading degrees in center in yellow
   ctx.fillStyle = '#FFE600';
   ctx.font = 'bold ' + (9*dpr) + 'px monospace';
-  ctx.fillText(Math.round(S.heading)+'°', 0, r * 0.38);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(Math.round(S.heading)+'°', 0, 0);
 
   ctx.restore();
 }
