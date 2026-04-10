@@ -777,7 +777,7 @@ function showScreen(id) {
 // ═══════════════════════════════════════════════════
 var BASEMAPS = {
   gray: {
-    url: 'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
     photo: false
   },
   topo: {
@@ -794,6 +794,7 @@ var BASEMAPS = {
   }
 };
 var BASEMAP_ORDER = ['gray', 'topo', 'street', 'sat'];
+var tileFailHandled = false;
 function basemapDef() { return BASEMAPS[S.basemap] || BASEMAPS.gray; }
 function basemapTileUrl(z, tx, ty) {
   return basemapDef().url.replace('{z}', z).replace('{x}', tx).replace('{y}', ty);
@@ -829,6 +830,7 @@ function tileToLatLon(tx, ty, zoom) {
 
 function updateTiles() {
   if (!S.origin || !cv) return;
+  tileFailHandled = false;
   var tileLayer = document.getElementById('tileLayer');
   tileLayer.innerHTML = '';
   var bm = basemapDef();
@@ -890,6 +892,19 @@ function updateTiles() {
       img.style.width  = tileSizePx + 'px';
       img.style.height = tileSizePx + 'px';
       img.style.position = 'absolute';
+      img.onerror = function() {
+        if (tileFailHandled) return;
+        tileFailHandled = true;
+        // Some devices/networks block specific Esri hosts/layers.
+        // Auto-fallback keeps the map usable instead of "map data not available".
+        if (S.basemap === 'gray') {
+          S.basemap = 'topo';
+          syncBasemapUi();
+          if (S.origin) save();
+          toast('GRAY MAP UNAVAILABLE - SWITCHED TO TOPO');
+          setTimeout(function(){ updateTiles(); draw(); }, 0);
+        }
+      };
       img.draggable = false;
       img.loading = 'lazy';
       tileLayer.appendChild(img);
