@@ -695,107 +695,123 @@ function draw() {
 
   ctx.clearRect(0, 0, W, H);
 
-  // In course-up mode: tractor dot is pinned to lower-center.
-  // Camera is always locked to tractor position (camMX/camMY = curMX/curMY).
-  // The whole canvas rotates around the dot so heading points up.
-  // In north-up mode: dot is screen center, camera pans freely.
+  // Anchor point: where the tractor dot sits on screen
   var dotX = W / 2;
-  var dotY = courseUp ? H * 0.65 : H / 2;
+  var dotY = courseUp ? H * 0.68 : H / 2;
 
-  // In course-up, always lock camera to current position
+  // Reference world position (what maps to dotX/dotY)
   var refMX = (courseUp || following) ? curMX : camMX;
   var refMY = (courseUp || following) ? curMY : camMY;
 
-  function wx(mx) { return dotX + (mx - refMX) * sc; }
-  function wy(my) { return dotY - (my - refMY) * sc; }
+  // Rotation angle: in course-up, rotate world so heading points up (screen up = -Y)
+  // heading=0 (North) should map to screen up, heading=90 (East) should map to screen right
+  var rot = courseUp && heading !== null ? (heading * Math.PI / 180) : 0;
+  var cosR = Math.cos(rot), sinR = Math.sin(rot);
 
-  ctx.save();
-  if (courseUp && heading !== null) {
-    var rotRad = -heading * Math.PI / 180;
-    ctx.translate(dotX, dotY);
-    ctx.rotate(rotRad);
-    ctx.translate(-dotX, -dotY);
+  // Convert world coords (mx,my) to screen (px,py) with rotation
+  function wx(mx, my) {
+    var dx = mx - refMX, dy = my - refMY;
+    // Rotate: screen-x = dx*sin(rot) + dy*cos(rot) ... wait, let's think:
+    // North (dy+) should go UP (screen -y). East (dx+) should go RIGHT (screen +x).
+    // Without rotation: sx = dx*sc, sy = -dy*sc
+    // With course-up rotation by angle 'rot' (heading):
+    //   rotate world coords clockwise by rot so heading points up
+    //   sx =  dx*cos(rot) + dy*sin(rot)   (east component)  ... hmm
+    // Simplest: rotate the offset vector by -rot
+    var rx =  dx * cosR + dy * sinR;
+    var ry = -dx * sinR + dy * cosR;
+    return dotX + rx * sc;
+  }
+  function wy(mx, my) {
+    var dx = mx - refMX, dy = my - refMY;
+    var rx =  dx * cosR + dy * sinR;
+    var ry = -dx * sinR + dy * cosR;
+    return dotY - ry * sc;
   }
 
   var swM = swathFt * 0.3048;
+
+  // Draw completed passes
   for (var i = 0; i < passes.length; i++) {
     drawPass(passes[i].pts, swM, sc, wx, wy, false, passes[i].loop);
   }
+  // Draw current pass
   if (curPass.length > 1) drawPass(curPass, swM, sc, wx, wy, true, loopMode);
 
+  // Draw tractor dot — always at dotX, dotY
   if (gpsReady) {
-    var px = wx(curMX), py = wy(curMY);
-    // Dot radius = ~1/6 of swath width in pixels, min 4px, max 10px
     var swathPx = swathFt * 0.3048 * sc;
     var r = Math.min(10, Math.max(4, swathPx / 6)) * dpr;
 
+    // Glow ring
     ctx.beginPath();
-    ctx.arc(px, py, r * 2.2, 0, Math.PI*2);
-    ctx.fillStyle = recording ? 'rgba(255,59,48,0.18)' : 'rgba(57,255,20,0.18)';
+    ctx.arc(dotX, dotY, r * 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = recording ? 'rgba(255,59,48,0.15)' : 'rgba(57,255,20,0.12)';
     ctx.fill();
 
+    // Dot
     ctx.beginPath();
-    ctx.arc(px, py, r, 0, Math.PI*2);
+    ctx.arc(dotX, dotY, r, 0, Math.PI * 2);
     ctx.fillStyle = recording ? '#FF3B30' : '#39FF14';
     ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(px, py, r, 0, Math.PI*2);
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2.5 * dpr;
+    ctx.lineWidth = 2 * dpr;
     ctx.stroke();
 
-    // In course-up the arrow always points straight up (forward)
-    if (heading !== null) {
-      var arrowRad = courseUp ? -Math.PI/2 : (heading - 90) * Math.PI / 180;
-      ctx.beginPath();
-      ctx.moveTo(px, py);
-      ctx.lineTo(px + Math.cos(arrowRad)*55*dpr, py + Math.sin(arrowRad)*55*dpr);
-      ctx.strokeStyle = recording ? '#FF3B30' : '#39FF14';
-      ctx.lineWidth = 3 * dpr;
-      ctx.setLineDash([7*dpr, 5*dpr]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
+    // Forward arrow — always points straight UP in course-up, or toward heading in north-up
+    var arrowLen = 50 * dpr;
+    var arrowAngle = courseUp ? -Math.PI / 2 : (heading !== null ? (heading - 90) * Math.PI / 180 : -Math.PI / 2);
+    ctx.beginPath();
+    ctx.moveTo(dotX, dotY);
+    ctx.lineTo(dotX + Math.cos(arrowAngle) * arrowLen, dotY + Math.sin(arrowAngle) * arrowLen);
+    ctx.strokeStyle = recording ? '#FF3B30' : '#39FF14';
+    ctx.lineWidth = 3 * dpr;
+    ctx.setLineDash([8 * dpr, 5 * dpr]);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
 
-  ctx.restore();
-
-  // North indicator (always drawn unrotated, top-right area)
+  // North indicator — unrotated overlay in course-up mode
   if (courseUp && heading !== null) {
     drawNorthIndicator(W, H, dpr);
   }
 }
 
-// Small N arrow showing true north direction when in course-up mode
+// Small compass rose showing true north when in course-up mode
 function drawNorthIndicator(W, H, dpr) {
-  var cx = W - 36*dpr, cy = 36*dpr, r = 18*dpr;
-  var northRad = heading * Math.PI / 180 - Math.PI/2;
+  var cx = W - 38 * dpr, cy = 38 * dpr, r = 20 * dpr;
+  // North direction on screen = heading rotated to screen coords
+  // If heading = 0 (North), north arrow points UP = angle -PI/2
+  // If heading = 90 (East), north arrow points LEFT = angle -PI
+  var northAngle = -Math.PI / 2 - (heading * Math.PI / 180);
+
   ctx.save();
   ctx.translate(cx, cy);
+
   ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI*2);
-  ctx.fillStyle = 'rgba(10,15,10,0.75)';
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(10,15,10,0.85)';
   ctx.fill();
   ctx.strokeStyle = '#1e2e1e';
   ctx.lineWidth = 1.5;
   ctx.stroke();
-  // N arrow tip
-  var tipX = Math.cos(northRad) * (r - 4);
-  var tipY = Math.sin(northRad) * (r - 4);
-  var tailX = -tipX * 0.6, tailY = -tipY * 0.6;
+
+  var tipX = Math.cos(northAngle) * (r - 5);
+  var tipY = Math.sin(northAngle) * (r - 5);
+
   ctx.beginPath();
-  ctx.moveTo(tailX, tailY);
+  ctx.moveTo(-tipX * 0.5, -tipY * 0.5);
   ctx.lineTo(tipX, tipY);
   ctx.strokeStyle = '#FF3B30';
   ctx.lineWidth = 2.5;
   ctx.stroke();
-  // N label
+
   ctx.fillStyle = '#FF3B30';
-  ctx.font = 'bold ' + (10*dpr) + 'px monospace';
+  ctx.font = 'bold ' + (9 * dpr) + 'px monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('N', tipX * 0.55, tipY * 0.55);
+  ctx.fillText('N', tipX * 0.6, tipY * 0.6);
+
   ctx.restore();
 }
 
@@ -804,26 +820,22 @@ function drawPass(pts, swM, sc, wx, wy, active, isLoop) {
   var half = swM / 2 * sc;
 
   if (isLoop && pts.length > 3) {
-    // For loops: draw the driven centerline as a filled closed polygon
-    // Inner and outer offset rings
     var L = [], R = [];
-    var allPts = pts.concat([pts[0]]); // close the loop
+    var allPts = pts.concat([pts[0]]);
     for (var i = 0; i < allPts.length - 1; i++) {
       var dmx = allPts[i+1].mx - allPts[i].mx;
       var dmy = allPts[i+1].my - allPts[i].my;
       var len = Math.sqrt(dmx*dmx + dmy*dmy) || 1;
       var nx =  dmy/len * half;
       var ny =  dmx/len * half;
-      var px = wx(allPts[i].mx), py = wy(allPts[i].my);
-      L.push({ x: px-nx, y: py-ny });
-      R.push({ x: px+nx, y: py+ny });
+      // Offset in world space, then project to screen
+      L.push({ x: wx(allPts[i].mx - nx/sc, allPts[i].my - ny/sc), y: wy(allPts[i].mx - nx/sc, allPts[i].my - ny/sc) });
+      R.push({ x: wx(allPts[i].mx + nx/sc, allPts[i].my + ny/sc), y: wy(allPts[i].mx + nx/sc, allPts[i].my + ny/sc) });
     }
-    // Outer ring
     ctx.beginPath();
     ctx.moveTo(R[0].x, R[0].y);
     for (var j = 1; j < R.length; j++) ctx.lineTo(R[j].x, R[j].y);
     ctx.closePath();
-    // Inner ring (drawn as a hole using evenodd)
     ctx.moveTo(L[0].x, L[0].y);
     for (var k = 1; k < L.length; k++) ctx.lineTo(L[k].x, L[k].y);
     ctx.closePath();
@@ -831,27 +843,26 @@ function drawPass(pts, swM, sc, wx, wy, active, isLoop) {
     ctx.fill('evenodd');
     ctx.strokeStyle = active ? '#39FF14' : 'rgba(57,255,20,0.7)';
     ctx.lineWidth = (active ? 2 : 1.5) * (window.devicePixelRatio || 1);
-    // Draw centerline
     ctx.beginPath();
-    ctx.moveTo(wx(pts[0].mx), wy(pts[0].my));
-    for (var m = 1; m < pts.length; m++) ctx.lineTo(wx(pts[m].mx), wy(pts[m].my));
+    ctx.moveTo(wx(pts[0].mx, pts[0].my), wy(pts[0].mx, pts[0].my));
+    for (var m = 1; m < pts.length; m++) ctx.lineTo(wx(pts[m].mx, pts[m].my), wy(pts[m].mx, pts[m].my));
     ctx.closePath();
     ctx.stroke();
     return;
   }
 
-  // Standard pass rendering
+  // Standard pass — build offset polygon in world space
   var L2 = [], R2 = [];
   for (var i = 0; i < pts.length; i++) {
     var dmx, dmy;
     if (i < pts.length - 1) { dmx = pts[i+1].mx - pts[i].mx; dmy = pts[i+1].my - pts[i].my; }
     else                    { dmx = pts[i].mx - pts[i-1].mx; dmy = pts[i].my - pts[i-1].my; }
     var len = Math.sqrt(dmx*dmx + dmy*dmy) || 1;
-    var nx =  dmy/len * half;
-    var ny =  dmx/len * half;
-    var px = wx(pts[i].mx), py = wy(pts[i].my);
-    L2.push({ x: px-nx, y: py-ny });
-    R2.push({ x: px+nx, y: py+ny });
+    // Perpendicular offset in world coords (meters)
+    var offX = (dmy / len) * (swM / 2);
+    var offY = (dmx / len) * (swM / 2);
+    L2.push({ x: wx(pts[i].mx - offX, pts[i].my - offY), y: wy(pts[i].mx - offX, pts[i].my - offY) });
+    R2.push({ x: wx(pts[i].mx + offX, pts[i].my + offY), y: wy(pts[i].mx + offX, pts[i].my + offY) });
   }
   var poly = L2.concat(R2.slice().reverse());
   ctx.beginPath();
