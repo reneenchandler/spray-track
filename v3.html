@@ -37,7 +37,11 @@ body {
 
 /* ── NAV BAR (bottom) ── */
 #navBar {
-  background: var(--panel); border-top: 2px solid var(--border);
+  background: linear-gradient(180deg, rgba(8,13,8,0.62) 0%, rgba(8,13,8,0.82) 100%);
+  border-top: 1px solid rgba(140,190,140,0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 -10px 28px rgba(0,0,0,0.24);
   display: flex; flex-shrink: 0;
   padding-bottom: max(env(safe-area-inset-bottom), 12px);
   position: relative; z-index: 50;
@@ -144,8 +148,11 @@ body {
 #tileLayer {
   position: absolute; inset: 0; overflow: hidden;
 }
-#tileLayer img {
+#tileLayer.photo img {
   position: absolute; image-rendering: pixelated;
+}
+#tileLayer.vector img {
+  position: absolute; image-rendering: auto;
 }
 #mapCanvas {
   position: absolute; inset: 0; width: 100%; height: 100%;
@@ -163,6 +170,11 @@ body {
 #orientBtn { top:12px; left:12px; }
 #followBtn  { top:50px; left:12px; }
 #abBtn      { top:88px; left:12px; }
+#baseBtn    { top:50px; right:12px; left:auto; max-width:110px; text-align:center; padding:7px 8px; }
+#mapAttrib {
+  position:absolute; bottom:3px; left:6px; z-index:9;
+  font-size:8px; color:rgba(140,170,140,0.45); pointer-events:none; letter-spacing:0.3px;
+}
 #passBadge {
   position:absolute; top:12px; right:12px; z-index:10;
   background:rgba(8,13,8,0.88); border:1px solid var(--green);
@@ -195,9 +207,13 @@ body {
 /* ── METRICS (drive screen bottom) ── */
 #driveMetrics {
   display:grid; grid-template-columns:1fr 1fr 1fr;
-  background:rgba(8,13,8,0.96); border-top:2px solid var(--border); flex-shrink:0;
+  background:linear-gradient(180deg, rgba(8,13,8,0.55) 0%, rgba(8,13,8,0.74) 100%);
+  border-top:1px solid rgba(140,190,140,0.18);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  flex-shrink:0;
 }
-.metric { padding:9px 6px; text-align:center; border-right:1px solid var(--border); }
+.metric { padding:9px 6px; text-align:center; border-right:1px solid rgba(140,190,140,0.14); }
 .metric:last-child { border-right:none; }
 .mlabel { font-size:9px; font-weight:700; letter-spacing:2px; color:var(--muted); margin-bottom:1px; }
 .mval   { font-size:24px; color:var(--green); line-height:1; }
@@ -205,7 +221,8 @@ body {
 
 /* ── SWATH / MODE / CONTROLS ── */
 #swathBar {
-  background:rgba(8,13,8,0.96); border-top:1px solid var(--border);
+  background:rgba(8,13,8,0.62); border-top:1px solid rgba(140,190,140,0.14);
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
   padding:7px 16px; display:flex; align-items:center; gap:10px;
   flex-shrink:0; cursor:pointer;
 }
@@ -239,11 +256,12 @@ body {
   padding:13px; cursor:pointer; font-family:'Courier New',monospace;
 }
 #modeRow {
-  background:rgba(8,13,8,0.96); border-top:1px solid var(--border);
+  background:rgba(8,13,8,0.62); border-top:1px solid rgba(140,190,140,0.14);
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
   display:flex; flex-shrink:0;
 }
 .modeBtn {
-  flex:1; background:transparent; border:none; border-right:1px solid var(--border);
+  flex:1; background:transparent; border:none; border-right:1px solid rgba(140,190,140,0.14);
   color:var(--muted); font-family:'Courier New',monospace;
   font-size:11px; font-weight:bold; letter-spacing:1px;
   padding:10px 8px; cursor:pointer; text-transform:uppercase;
@@ -251,17 +269,24 @@ body {
 .modeBtn:last-child { border-right:none; }
 .modeBtn.active { color:var(--green); background:rgba(57,255,20,0.06); }
 #controls {
-  background:rgba(8,13,8,0.96); border-top:2px solid var(--border);
+  background:linear-gradient(180deg, rgba(8,13,8,0.58) 0%, rgba(8,13,8,0.8) 100%);
+  border-top:1px solid rgba(140,190,140,0.2);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
   padding:10px 12px 20px; display:flex; gap:10px; flex-shrink:0;
 }
 .btn {
-  flex:1; border:2px solid var(--border); border-radius:8px;
-  background:transparent; color:var(--text); font-size:13px; font-weight:700;
+  flex:1; border:1px solid rgba(140,190,140,0.25); border-radius:12px;
+  background:rgba(8,13,8,0.34); color:var(--text); font-size:13px; font-weight:700;
   letter-spacing:1px; padding:15px 8px; text-transform:uppercase; cursor:pointer;
   font-family:'Courier New',monospace;
 }
 .btn:active { opacity:0.7; }
-.btn-go { flex:2; background:var(--green); border-color:var(--green); color:#000; font-size:16px; }
+.btn-go {
+  flex:2; background:linear-gradient(180deg, #49ff26 0%, #2eea0a 100%);
+  border-color:#4fff2d; color:#041004; font-size:16px;
+  box-shadow:0 6px 16px rgba(57,255,20,0.3);
+}
 .btn-go.rec { background:var(--red); border-color:var(--red); color:#fff; animation:recpulse 1.5s infinite; }
 @keyframes recpulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,59,48,0.4)} 50%{box-shadow:0 0 0 8px rgba(255,59,48,0)} }
 .btn-clear { border-color:rgba(255,59,48,0.4); color:rgba(255,59,48,0.8); }
@@ -473,10 +498,12 @@ body {
   <div id="mapWrap">
     <div id="tileLayer"></div>
     <canvas id="mapCanvas"></canvas>
+    <div id="mapAttrib">Map: Esri</div>
     <div id="passBadge">0 PASSES</div>
     <button class="map-btn on"  id="orientBtn">↑ COURSE-UP</button>
     <button class="map-btn on"  id="followBtn">📍 LOCKED</button>
     <button class="map-btn"     id="abBtn">AB LINE</button>
+    <button class="map-btn on"  id="baseBtn" type="button" onclick="cycleBasemap()">GRAY MAP</button>
     <div id="lightbar">
       <div id="lbDots"></div>
       <div id="lbText">WAITING</div>
@@ -636,7 +663,8 @@ var S = {
   currentJob: null,
   watchId: null,
   mapTiles: [],
-  tileZoom: 18
+  tileZoom: 18,
+  basemap: 'gray'
 };
 var cv, ctx, lt=null, pd=null;
 
@@ -650,7 +678,7 @@ function save() {
     localStorage.setItem(KEY, JSON.stringify({
       swathFt:S.swathFt, units:S.units, offset:S.offset,
       origin:S.origin, passes:S.passes, abLine:S.abLine,
-      fields:S.fields, worklog:S.worklog, ts:Date.now()
+      fields:S.fields, worklog:S.worklog, basemap:S.basemap, ts:Date.now()
     }));
   } catch(e) {}
 }
@@ -678,6 +706,7 @@ function clearSave() { try { localStorage.removeItem(KEY); } catch(e){} }
     S.offset=saved2.offset||'none'; S.origin=saved2.origin;
     S.passes=saved2.passes; S.abLine=saved2.abLine||null;
     S.fields=saved2.fields||[]; S.worklog=saved2.worklog||[];
+    S.basemap=saved2.basemap||'gray';
     S.gpsReady=true;
     applySettings(); launch();
     updateBadge(); calcArea();
@@ -691,6 +720,7 @@ function clearSave() { try { localStorage.removeItem(KEY); } catch(e){} }
     S.units=document.getElementById('inUnits').value;
     // Preserve fields and worklog across sessions
     if (saved3) { S.fields=saved3.fields||[]; S.worklog=saved3.worklog||[]; }
+    S.basemap = (saved3 && saved3.basemap) ? saved3.basemap : 'gray';
     clearSave();
     applySettings(); launch();
     renderFieldsList(); renderWorklog();
@@ -703,6 +733,7 @@ function applySettings() {
   document.getElementById('mUnit').textContent = S.units==='acres'?'ACRES':'HECT';
   document.getElementById('equipWidth').textContent = S.swathFt.toFixed(1);
   setOffset(S.offset, true);
+  syncBasemapUi();
 }
 function fmtTime(ts) {
   if(!ts)return'';
@@ -738,10 +769,50 @@ function showScreen(id) {
 }
 
 // ═══════════════════════════════════════════════════
-// SATELLITE TILES  (OpenStreetMap fallback → free!)
-// We use tile.openstreetmap.org but styled dark, or
-// use a free satellite provider via ESRI ArcGIS
+// BASEMAPS (Esri — same tile scheme as before)
+// gray  = dark minimal canvas (closest to cab GPS “moving map”)
+// topo  = contours / land use (readable in daylight)
+// street= road labels
+// sat   = aerial (previous default)
 // ═══════════════════════════════════════════════════
+var BASEMAPS = {
+  gray: {
+    url: 'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    photo: false
+  },
+  topo: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+    photo: false
+  },
+  street: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+    photo: false
+  },
+  sat: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    photo: true
+  }
+};
+var BASEMAP_ORDER = ['gray', 'topo', 'street', 'sat'];
+function basemapDef() { return BASEMAPS[S.basemap] || BASEMAPS.gray; }
+function basemapTileUrl(z, tx, ty) {
+  return basemapDef().url.replace('{z}', z).replace('{x}', tx).replace('{y}', ty);
+}
+function syncBasemapUi() {
+  var el = document.getElementById('baseBtn');
+  if (!el) return;
+  var labels = { gray: 'GRAY MAP', topo: 'TOPO', street: 'ROADS', sat: 'SATELLITE' };
+  el.textContent = labels[S.basemap] || 'GRAY MAP';
+}
+function cycleBasemap() {
+  var i = BASEMAP_ORDER.indexOf(S.basemap);
+  if (i < 0) i = 0;
+  S.basemap = BASEMAP_ORDER[(i + 1) % BASEMAP_ORDER.length];
+  syncBasemapUi();
+  updateTiles();
+  if (S.origin) save();
+}
+
 function latLonToTile(lat, lon, zoom) {
   var n = Math.pow(2, zoom);
   var x = Math.floor((lon + 180) / 360 * n);
@@ -760,6 +831,8 @@ function updateTiles() {
   if (!S.origin || !cv) return;
   var tileLayer = document.getElementById('tileLayer');
   tileLayer.innerHTML = '';
+  var bm = basemapDef();
+  tileLayer.className = bm.photo ? 'photo' : 'vector';
 
   // Pick zoom level based on current scale
   var zoom = S.tileZoom;
@@ -809,8 +882,7 @@ function updateTiles() {
   for (var tx = centerTileX - tilesX; tx <= centerTileX + tilesX; tx++) {
     for (var ty = centerTileY - tilesY; ty <= centerTileY + tilesY; ty++) {
       var img = document.createElement('img');
-      img.src = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/'
-                + zoom + '/' + ty + '/' + tx;
+      img.src = basemapTileUrl(zoom, tx, ty);
       var screenX = offsetX + (tx - centerTileX) * tileSizePx;
       var screenY = offsetY + (ty - centerTileY) * tileSizePx;
       img.style.left   = screenX + 'px';
