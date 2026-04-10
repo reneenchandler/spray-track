@@ -1,0 +1,1775 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Spray Track">
+<title>Spray Track</title>
+
+<!-- Home Screen icon (what appears on iPhone when added to Home Screen) -->
+
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+
+<!-- Splash screens for common iPhone sizes -->
+
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="icon.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="icon.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="icon.png">
+<link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" href="icon.png">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --green: #39FF14; --red: #FF3B30; --amber: #FFB800; --blue: #0A84FF;
+  --yellow: #FFD60A;
+  --bg: #080d08; --panel: #0f150f; --border: #1a2a1a;
+  --text: #e8f5e8; --muted: #4a6a4a;
+}
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'Courier New', monospace;
+  height: 100dvh; display: flex; flex-direction: column;
+  overflow: hidden; user-select: none;
+}
+
+/* ── SCREENS ── */
+.screen { display: none; flex-direction: column; height: 100dvh; }
+.screen.active { display: flex; }
+
+/* ── NAV BAR (bottom) ── */
+#navBar {
+background: var(–panel); border-top: 2px solid var(–border);
+display: flex; flex-shrink: 0;
+padding-bottom: max(env(safe-area-inset-bottom), 12px);
+position: relative; z-index: 50;
+}
+.navBtn {
+flex: 1; background: transparent; border: none;
+color: var(–muted); font-family: ‘Courier New’, monospace;
+font-size: 9px; font-weight: 700; letter-spacing: 1px;
+padding: 10px 4px 8px; cursor: pointer;
+display: flex; flex-direction: column; align-items: center; gap: 3px;
+text-transform: uppercase;
+}
+.navBtn svg { width: 22px; height: 22px; }
+.navBtn svg path, .navBtn svg polygon, .navBtn svg rect,
+.navBtn svg line, .navBtn svg circle { stroke: var(–muted); }
+.navBtn.active { color: var(–green); }
+.navBtn.active svg path, .navBtn.active svg polygon, .navBtn.active svg rect,
+.navBtn.active svg line, .navBtn.active svg circle { stroke: var(–green); }
+
+/* ── SPLASH ── */
+#splash {
+position: fixed; inset: 0; z-index: 9999;
+background: #080d08; display: flex; flex-direction: column;
+align-items: center; justify-content: center; gap: 20px;
+transition: opacity 0.6s ease;
+}
+#splash.hide { opacity: 0; pointer-events: none; }
+#splash img {
+width: 140px; height: 140px; border-radius: 28px;
+box-shadow: 0 8px 40px rgba(57,255,20,0.3);
+}
+#splash .splash-title {
+font-size: 32px; font-weight: 900; color: #39FF14;
+font-family: system-ui, sans-serif; letter-spacing: -1px;
+text-align: center; line-height: 1;
+}
+#splash .splash-sub {
+font-size: 11px; letter-spacing: 4px; color: #3a5a3a;
+}
+#splash .splash-spinner {
+width: 32px; height: 32px; border: 3px solid #1a2a1a;
+border-top-color: #39FF14; border-radius: 50%;
+animation: spin 0.8s linear infinite; margin-top: 10px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#setupScreen {
+position: fixed; inset: 0; z-index: 999;
+background: var(–bg); display: flex; flex-direction: column;
+align-items: center; justify-content: center;
+padding: 32px 24px; gap: 14px;
+background-image: linear-gradient(rgba(57,255,20,0.03) 1px,transparent 1px),
+linear-gradient(90deg,rgba(57,255,20,0.03) 1px,transparent 1px);
+background-size: 44px 44px;
+}
+#setupScreen.gone { display: none; }
+#setupScreen h1 {
+font-size: 52px; font-weight: 900; color: var(–green);
+line-height: 1; text-align: center; letter-spacing:-1px;
+font-family: system-ui,sans-serif;
+}
+.sub { font-size: 10px; letter-spacing: 5px; color: var(–muted); margin-bottom: 8px; }
+.sf { width: 100%; max-width: 300px; }
+.sf label { display:block; font-size:10px; font-weight:700; letter-spacing:3px; color:var(–muted); margin-bottom:5px; text-transform:uppercase; }
+.sf input, .sf select {
+width:100%; background:var(–panel); border:2px solid var(–border); border-radius:6px;
+color:var(–text); font-size:22px; padding:13px 14px; outline:none;
+-webkit-appearance:none; font-family:‘Courier New’,monospace;
+}
+.sf input:focus, .sf select:focus { border-color:var(–green); }
+.sf select option { background:#0f150f; }
+#goBtn {
+width:100%; max-width:300px; background:var(–green); border:none; border-radius:8px;
+color:#000; font-size:20px; font-weight:900; letter-spacing:3px; padding:18px;
+cursor:pointer; font-family:‘Courier New’,monospace; margin-top:6px;
+}
+#goBtn:active { opacity:0.8; }
+#resumeBtn {
+width:100%; max-width:300px; background:transparent; border:2px solid var(–green);
+border-radius:8px; color:var(–green); font-size:15px; font-weight:700;
+letter-spacing:2px; padding:14px; cursor:pointer;
+font-family:‘Courier New’,monospace; display:none;
+}
+#resumeMeta { font-size:10px; letter-spacing:1px; color:var(–muted); text-align:center; }
+.sdiv { font-size:10px; letter-spacing:3px; color:var(–muted); }
+.snote { font-size:10px; color:var(–muted); text-align:center; line-height:1.7; max-width:260px; }
+
+/* ── STATUS BAR ── */
+.statusBar {
+background: rgba(8,13,8,0.92); border-bottom: 1px solid var(–border);
+padding: 8px 14px; display: flex; justify-content:space-between; align-items:center;
+flex-shrink: 0;
+}
+.logo { font-size:12px; font-weight:bold; color:var(–green); letter-spacing:2px; }
+#gpsStatus { display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; letter-spacing:1px; }
+.dot { width:8px; height:8px; border-radius:50%; background:var(–muted); }
+.dot.on { background:var(–green); animation:blink 1.5s infinite; }
+.dot.searching { background:var(–amber); animation:blink 0.8s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ── MAP (satellite tile layer + canvas overlay) ── */
+#mapWrap {
+flex: 1; position: relative; overflow: hidden; background: #1a1a1a;
+}
+#tileLayer {
+position: absolute; inset: 0; overflow: hidden;
+}
+#tileLayer img {
+position: absolute; image-rendering: pixelated;
+}
+#mapCanvas {
+position: absolute; inset: 0; width: 100%; height: 100%;
+touch-action: none; pointer-events: all;
+}
+.map-btn {
+position: absolute; background: rgba(8,13,8,0.88);
+border: 1.5px solid var(–border); border-radius: 6px;
+color: var(–muted); font-family: ‘Courier New’, monospace;
+font-size: 10px; font-weight: bold; letter-spacing: 1px;
+padding: 7px 11px; cursor: pointer; z-index: 10;
+}
+.map-btn.on { border-color:var(–green); color:var(–green); }
+.map-btn.amber { border-color:var(–amber); color:var(–amber); }
+#orientBtn { top:12px; left:12px; }
+#followBtn  { top:50px; left:12px; }
+#abBtn      { top:88px; left:12px; }
+#passBadge {
+position:absolute; top:12px; right:12px; z-index:10;
+background:rgba(8,13,8,0.88); border:1px solid var(–green);
+border-radius:4px; padding:5px 9px; font-size:11px;
+color:var(–green); letter-spacing:1px; pointer-events:none;
+}
+
+/* ── LIGHTBAR ── */
+#lightbar {
+position:absolute; top:10px; left:50%; transform:translateX(-50%);
+display:none; flex-direction:column; align-items:center; gap:3px;
+z-index:20; pointer-events:none;
+}
+#lightbar.show { display:flex; }
+#lbDots { display:flex; gap:3px; align-items:center; }
+.lbd {
+width:13px; height:13px; border-radius:50%;
+background:#111; border:1px solid #1a2a1a; flex-shrink:0;
+}
+.lbd.cx { width:15px; height:15px; border-color:var(–green); background:#081408; }
+.lbd.g { background:var(–green); border-color:var(–green); box-shadow:0 0 5px var(–green); }
+.lbd.a { background:var(–amber); border-color:var(–amber); box-shadow:0 0 5px var(–amber); }
+.lbd.r { background:var(–red);   border-color:var(–red);   box-shadow:0 0 5px var(–red); }
+#lbText {
+font-size:12px; font-weight:bold; letter-spacing:2px; color:#fff;
+background:rgba(8,13,8,0.9); padding:2px 10px; border-radius:3px;
+border:1px solid var(–border);
+}
+
+/* ── METRICS (drive screen bottom) ── */
+#driveMetrics {
+display:grid; grid-template-columns:1fr 1fr 1fr;
+background:rgba(8,13,8,0.96); border-top:2px solid var(–border); flex-shrink:0;
+}
+.metric { padding:9px 6px; text-align:center; border-right:1px solid var(–border); }
+.metric:last-child { border-right:none; }
+.mlabel { font-size:9px; font-weight:700; letter-spacing:2px; color:var(–muted); margin-bottom:1px; }
+.mval   { font-size:24px; color:var(–green); line-height:1; }
+.munit  { font-size:9px; color:var(–muted); letter-spacing:1px; }
+
+/* ── SWATH / MODE / CONTROLS ── */
+#swathBar {
+background:rgba(8,13,8,0.96); border-top:1px solid var(–border);
+padding:7px 16px; display:flex; align-items:center; gap:10px;
+flex-shrink:0; cursor:pointer;
+}
+#swathBar span { font-size:10px; font-weight:700; letter-spacing:3px; color:var(–muted); }
+#swathDisplay { flex:1; font-size:15px; color:var(–green); text-align:right; }
+#swathEdit {
+display:none; position:fixed; inset:0; z-index:200;
+background:rgba(0,0,0,0.85); align-items:center; justify-content:center;
+}
+#swathEdit.show { display:flex; }
+#swathEditBox {
+background:var(–panel); border:2px solid var(–green); border-radius:12px;
+padding:24px; width:280px; display:flex; flex-direction:column; gap:14px;
+}
+#swathEditBox label { font-size:10px; letter-spacing:3px; color:var(–muted); font-weight:700; }
+#swathEditInput {
+width:100%; background:var(–bg); border:2px solid var(–border); border-radius:6px;
+color:var(–text); font-size:36px; padding:10px; outline:none;
+font-family:‘Courier New’,monospace; text-align:center;
+}
+#swathEditInput:focus { border-color:var(–green); }
+.swathBtns { display:flex; gap:10px; }
+.swathBtns button {
+flex:1; background:transparent; border:2px solid var(–border); border-radius:6px;
+color:var(–text); font-size:28px; padding:10px; cursor:pointer;
+font-family:‘Courier New’,monospace;
+}
+#swathEditOk {
+background:var(–green); border:none; border-radius:6px;
+color:#000; font-size:16px; font-weight:900; letter-spacing:2px;
+padding:13px; cursor:pointer; font-family:‘Courier New’,monospace;
+}
+#modeRow {
+background:rgba(8,13,8,0.96); border-top:1px solid var(–border);
+display:flex; flex-shrink:0;
+}
+.modeBtn {
+flex:1; background:transparent; border:none; border-right:1px solid var(–border);
+color:var(–muted); font-family:‘Courier New’,monospace;
+font-size:11px; font-weight:bold; letter-spacing:1px;
+padding:10px 8px; cursor:pointer; text-transform:uppercase;
+}
+.modeBtn:last-child { border-right:none; }
+.modeBtn.active { color:var(–green); background:rgba(57,255,20,0.06); }
+#controls {
+background:rgba(8,13,8,0.96); border-top:2px solid var(–border);
+padding:10px 12px 20px; display:flex; gap:10px; flex-shrink:0;
+}
+.btn {
+flex:1; border:2px solid var(–border); border-radius:8px;
+background:transparent; color:var(–text); font-size:13px; font-weight:700;
+letter-spacing:1px; padding:15px 8px; text-transform:uppercase; cursor:pointer;
+font-family:‘Courier New’,monospace;
+}
+.btn:active { opacity:0.7; }
+.btn-go { flex:2; background:var(–green); border-color:var(–green); color:#000; font-size:16px; }
+.btn-go.rec { background:var(–red); border-color:var(–red); color:#fff; animation:recpulse 1.5s infinite; }
+@keyframes recpulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,59,48,0.4)} 50%{box-shadow:0 0 0 8px rgba(255,59,48,0)} }
+.btn-clear { border-color:rgba(255,59,48,0.4); color:rgba(255,59,48,0.8); }
+.btn-undo  { border-color:var(–muted); color:var(–muted); }
+
+/* ── FIELDS SCREEN ── */
+#fieldsScreen { background:var(–bg); }
+.screenTitle {
+padding:16px 18px 12px; font-size:28px; font-weight:900; color:var(–text);
+font-family:system-ui,sans-serif; border-bottom:1px solid var(–border);
+display:flex; justify-content:space-between; align-items:center;
+}
+.screenTitle button {
+background:transparent; border:none; color:var(–green);
+font-size:28px; cursor:pointer; padding:0 4px;
+}
+#fieldsList { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; }
+.fieldCard {
+background:var(–panel); border:1px solid var(–border); border-radius:10px;
+padding:14px 16px; display:flex; align-items:center; gap:12px; cursor:pointer;
+}
+.fieldCard:active { background:rgba(57,255,20,0.06); }
+.fieldCard.active-field { border-color:var(–green); }
+.fieldThumb {
+width:48px; height:48px; border-radius:6px; background:#1a2a1a;
+border:1px solid var(–border); flex-shrink:0;
+display:flex; align-items:center; justify-content:center; font-size:20px;
+}
+.fieldInfo { flex:1; }
+.fieldName { font-size:16px; font-weight:700; color:var(–text); font-family:system-ui,sans-serif; }
+.fieldAcres { font-size:13px; color:var(–muted); margin-top:2px; }
+.fieldChev { color:var(–muted); font-size:18px; }
+.addFieldBtn {
+margin:0 16px 16px; background:rgba(57,255,20,0.1); border:2px solid var(–green);
+border-radius:10px; padding:16px; color:var(–green); font-size:15px; font-weight:700;
+letter-spacing:2px; cursor:pointer; font-family:‘Courier New’,monospace;
+display:flex; align-items:center; justify-content:center; gap:8px;
+}
+
+/* ── FIELD DETAIL ── */
+#fieldDetailScreen { background:var(–bg); }
+#fieldDetailMap {
+height:220px; background:#1a1a1a; position:relative; flex-shrink:0; overflow:hidden;
+}
+#fieldDetailMap canvas { position:absolute; inset:0; width:100%; height:100%; }
+#fieldDetailMap .fd-label {
+position:absolute; bottom:10px; left:50%; transform:translateX(-50%);
+background:rgba(0,0,0,0.7); color:#fff; font-size:12px;
+padding:4px 12px; border-radius:20px; white-space:nowrap;
+}
+.detailSection {
+background:var(–panel); border-radius:10px; margin:12px 16px 0;
+overflow:hidden; border:1px solid var(–border);
+}
+.detailRow {
+padding:13px 16px; display:flex; justify-content:space-between; align-items:center;
+border-bottom:1px solid var(–border); font-size:15px;
+}
+.detailRow:last-child { border-bottom:none; }
+.detailRow span:first-child { color:var(–text); font-family:system-ui,sans-serif; }
+.detailRow span:last-child  { color:var(–muted); font-size:14px; }
+.guidelineBtn {
+margin:12px 16px 0; background:rgba(57,255,20,0.12); border:2px solid var(–green);
+border-radius:10px; padding:15px; color:var(–green); font-size:16px; font-weight:700;
+letter-spacing:2px; cursor:pointer; font-family:‘Courier New’,monospace;
+display:flex; align-items:center; justify-content:center; gap:10px; width:calc(100% - 32px);
+}
+.deleteFieldBtn {
+margin:12px 16px; background:transparent; border:2px solid rgba(255,59,48,0.4);
+border-radius:10px; padding:14px; color:var(–red); font-size:15px; font-weight:700;
+letter-spacing:1px; cursor:pointer; font-family:‘Courier New’,monospace; width:calc(100% - 32px);
+}
+.backBtn {
+background:rgba(8,13,8,0.88); border:1.5px solid var(–border);
+border-radius:20px; color:var(–text); font-size:13px; font-weight:bold;
+padding:7px 14px 7px 10px; cursor:pointer; font-family:‘Courier New’,monospace;
+display:flex; align-items:center; gap:4px;
+}
+
+/* ── WORKLOG SCREEN ── */
+#worklogScreen { background:var(–bg); overflow-y:auto; }
+#worklogList { padding:16px; display:flex; flex-direction:column; gap:10px; flex:1; }
+.jobCard {
+background:var(–panel); border:1px solid var(–border); border-radius:10px;
+padding:14px 16px; font-family:system-ui,sans-serif;
+}
+.jobCard .jc-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+.jobCard .jc-field { font-size:16px; font-weight:700; color:var(–text); }
+.jobCard .jc-date  { font-size:11px; color:var(–muted); }
+.jobCard .jc-stats { display:flex; gap:20px; }
+.jobCard .jc-stat  { }
+.jobCard .jc-stat-val { font-size:18px; color:var(–green); font-family:‘Courier New’,monospace; }
+.jobCard .jc-stat-lbl { font-size:10px; color:var(–muted); letter-spacing:1px; }
+.currentJobCard {
+background:rgba(57,255,20,0.06); border-color:var(–green);
+}
+.inProgressBadge {
+background:var(–blue); color:#fff; font-size:10px; font-weight:700;
+letter-spacing:1px; padding:3px 8px; border-radius:4px;
+}
+.finishJobBtn {
+margin-top:12px; width:100%; background:var(–red); border:none;
+border-radius:8px; color:#fff; font-size:15px; font-weight:700;
+letter-spacing:2px; padding:13px; cursor:pointer; font-family:‘Courier New’,monospace;
+}
+
+/* ── EQUIPMENT SCREEN ── */
+#equipScreen { background:var(–bg); overflow-y:auto; }
+.equipSection { background:var(–panel); border-radius:10px; margin:12px 16px 0; border:1px solid var(–border); overflow:hidden; }
+.equipTitle { font-size:13px; font-weight:700; letter-spacing:2px; color:var(–muted); padding:10px 16px 6px; text-transform:uppercase; }
+.widthControl {
+padding:16px; display:flex; align-items:center;
+justify-content:space-between; gap:16px; border-bottom:1px solid var(–border);
+}
+.widthLabel { font-size:12px; letter-spacing:2px; color:var(–muted); text-align:center; margin-bottom:4px; }
+.widthDisplay {
+background:#000; border-radius:8px; padding:10px 20px; text-align:center;
+min-width:100px; border:1px solid var(–border);
+}
+.widthDisplay .wd-val { font-size:32px; color:var(–text); font-family:‘Courier New’,monospace; }
+.widthDisplay .wd-unit { font-size:11px; color:var(–muted); margin-top:2px; letter-spacing:2px; }
+.wBtn {
+width:54px; height:54px; border-radius:50%; background:var(–green); border:none;
+color:#000; font-size:28px; font-weight:700; cursor:pointer; display:flex;
+align-items:center; justify-content:center;
+}
+.wBtn.minus { background:rgba(255,59,48,0.2); color:var(–red); border:2px solid rgba(255,59,48,0.4); }
+.offsetRow { padding:14px 16px; border-bottom:1px solid var(–border); }
+.offsetLabel { font-size:12px; letter-spacing:2px; color:var(–muted); margin-bottom:8px; }
+.offsetBtns { display:flex; gap:0; border:1px solid var(–border); border-radius:6px; overflow:hidden; }
+.offsetBtn {
+flex:1; background:transparent; border:none; border-right:1px solid var(–border);
+color:var(–muted); font-family:‘Courier New’,monospace; font-size:12px; font-weight:700;
+letter-spacing:1px; padding:10px; cursor:pointer;
+}
+.offsetBtn:last-child { border-right:none; }
+.offsetBtn.active { background:rgba(57,255,20,0.12); color:var(–green); }
+
+/* ── TOAST ── */
+#toast {
+position:fixed; bottom:140px; left:50%; transform:translateX(-50%);
+background:rgba(8,13,8,0.95); border:1px solid var(–green); color:var(–green);
+font-size:11px; letter-spacing:2px; padding:10px 20px; border-radius:4px;
+z-index:500; opacity:0; transition:opacity 0.3s; pointer-events:none; white-space:nowrap;
+}
+#toast.show { opacity:1; }
+
+/* ── FIELD MAPPING OVERLAY ── */
+#fieldMapOverlay {
+position:fixed; inset:0; z-index:300; display:none; flex-direction:column;
+}
+#fieldMapOverlay.show { display:flex; }
+#fieldMapOvCanvas { flex:1; touch-action:none; }
+#fieldMapOvBar {
+background:rgba(8,13,8,0.96); border-top:2px solid var(–border);
+padding:12px 16px 24px; display:flex; align-items:center;
+justify-content:space-between; gap:12px;
+}
+#fieldMapAcres {
+flex:1; text-align:center; font-size:22px; font-weight:900;
+color:var(–text); font-family:system-ui,sans-serif;
+}
+.fmBtn {
+background:transparent; border:2px solid var(–border); border-radius:20px;
+color:var(–text); font-size:14px; font-weight:700; padding:10px 18px; cursor:pointer;
+font-family:‘Courier New’,monospace;
+}
+#fieldMapFinish { background:var(–green); border-color:var(–green); color:#000; }
+</style>
+
+</head>
+<body>
+
+<!-- ══ SPLASH ══ -->
+
+<div id="splash">
+  <img src="icon.png" alt="Spray Track" onerror="this.style.display='none'">
+  <div class="splash-title">SPRAY<br>TRACK</div>
+  <div class="splash-sub">FIELD GUIDANCE SYSTEM</div>
+  <div class="splash-spinner"></div>
+</div>
+
+<!-- ══ SETUP ══ -->
+
+<div id="setupScreen">
+  <h1>SPRAY<br>TRACK</h1>
+  <div class="sub">FIELD GUIDANCE · V3</div>
+  <div class="sf">
+    <label>Swath Width (ft)</label>
+    <input type="number" id="inSwath" value="40" min="1" max="300" inputmode="numeric">
+  </div>
+  <div class="sf">
+    <label>Units</label>
+    <select id="inUnits">
+      <option value="acres">Acres</option>
+      <option value="hectares">Hectares</option>
+    </select>
+  </div>
+  <button id="goBtn">NEW SESSION →</button>
+  <div class="sdiv" id="orDiv" style="display:none">── OR ──</div>
+  <button id="resumeBtn">⟳ RESUME SESSION</button>
+  <div id="resumeMeta"></div>
+  <div class="snote">Allow location access when prompted.<br>Add to Home Screen for best GPS.</div>
+</div>
+
+<!-- ══ DRIVE SCREEN ══ -->
+
+<div class="screen active" id="driveScreen">
+  <div class="statusBar">
+    <div class="logo">SPRAY TRACK <span style="font-size:9px;color:#3a5a3a">V3</span></div>
+    <div id="gpsStatus"><div class="dot searching" id="gpsDot"></div><span id="gpsText">ACQUIRING</span></div>
+  </div>
+  <div id="mapWrap">
+    <div id="tileLayer"></div>
+    <canvas id="mapCanvas"></canvas>
+    <div id="passBadge">0 PASSES</div>
+    <button class="map-btn on"  id="orientBtn">↑ COURSE-UP</button>
+    <button class="map-btn on"  id="followBtn">📍 LOCKED</button>
+    <button class="map-btn"     id="abBtn">AB LINE</button>
+    <div id="lightbar">
+      <div id="lbDots"></div>
+      <div id="lbText">WAITING</div>
+    </div>
+  </div>
+  <div id="driveMetrics">
+    <div class="metric"><div class="mlabel">SPEED</div><div class="mval" id="mSpeed">0.0</div><div class="munit">MPH</div></div>
+    <div class="metric"><div class="mlabel">COVERED</div><div class="mval" id="mArea">0.00</div><div class="munit" id="mUnit">ACRES</div></div>
+    <div class="metric"><div class="mlabel">HEADING</div><div class="mval" id="mHead">---</div><div class="munit">DEG</div></div>
+  </div>
+  <div id="swathBar" onclick="openSwathEdit()">
+    <span>SWATH</span>
+    <div id="swathDisplay">40 ft ✎</div>
+  </div>
+  <div id="modeRow">
+    <button class="modeBtn active" id="modePass" onclick="setMode('pass')">▶▶ PASS</button>
+    <button class="modeBtn"        id="modeLoop" onclick="setMode('loop')">↺ LOOP</button>
+  </div>
+  <div id="controls">
+    <button class="btn btn-clear" id="clearBtn">CLEAR</button>
+    <button class="btn btn-go"    id="recBtn">▶ START PASS</button>
+    <button class="btn btn-undo"  id="undoBtn">UNDO</button>
+  </div>
+</div>
+
+<!-- ══ FIELDS SCREEN ══ -->
+
+<div class="screen" id="fieldsScreen">
+  <div class="screenTitle">
+    Fields <button onclick="startFieldMapping()">+</button>
+  </div>
+  <div id="fieldsList"></div>
+  <button class="addFieldBtn" onclick="startFieldMapping()">＋ ADD FIELD</button>
+</div>
+
+<!-- ══ FIELD DETAIL ══ -->
+
+<div class="screen" id="fieldDetailScreen">
+  <div class="statusBar" style="gap:10px">
+    <button class="backBtn" onclick="showScreen('fieldsScreen')">◀ Back</button>
+    <span id="fieldDetailTitle" style="font-size:14px;font-weight:700;color:var(--text)"></span>
+    <div style="width:60px"></div>
+  </div>
+  <div id="fieldDetailMap"><canvas id="fdCanvas"></canvas><div class="fd-label" id="fdLabel"></div></div>
+  <div style="overflow-y:auto;flex:1">
+    <button class="guidelineBtn" onclick="launchGuidelinesForField()">⚏ GUIDELINES</button>
+    <div class="detailSection">
+      <div class="detailRow"><span>Name</span><span id="fdName"></span></div>
+      <div class="detailRow"><span>Area</span><span id="fdArea"></span></div>
+      <div class="detailRow"><span>Perimeter</span><span id="fdPerimeter"></span></div>
+    </div>
+    <button class="deleteFieldBtn" onclick="deleteCurrentField()">🗑 Delete Field</button>
+  </div>
+</div>
+
+<!-- ══ WORKLOG SCREEN ══ -->
+
+<div class="screen" id="worklogScreen">
+  <div class="screenTitle">Work Log</div>
+  <div id="worklogList"></div>
+</div>
+
+<!-- ══ EQUIPMENT SCREEN ══ -->
+
+<div class="screen" id="equipScreen">
+  <div class="screenTitle">Equipment</div>
+  <div class="equipSection">
+    <div class="equipTitle">Default Width</div>
+    <div class="widthControl">
+      <div>
+        <div class="widthLabel">CURRENT WIDTH</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
+          <button class="wBtn minus" onclick="adjustWidth(-1)">−</button>
+          <div class="widthDisplay">
+            <div class="wd-val" id="equipWidth">40.0</div>
+            <div class="wd-unit">feet</div>
+          </div>
+          <button class="wBtn" onclick="adjustWidth(1)">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="offsetRow">
+      <div class="offsetLabel">OFFSET</div>
+      <div class="offsetBtns">
+        <button class="offsetBtn" id="offLeft"  onclick="setOffset('left')">Left</button>
+        <button class="offsetBtn active" id="offNone" onclick="setOffset('none')">None</button>
+        <button class="offsetBtn" id="offRight" onclick="setOffset('right')">Right</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SWATH EDIT OVERLAY ══ -->
+
+<div id="swathEdit">
+  <div id="swathEditBox">
+    <label>SWATH WIDTH (FT)</label>
+    <div class="swathBtns">
+      <button onclick="nudgeSwath(-5)">−5</button>
+      <button onclick="nudgeSwath(-1)">−1</button>
+      <button onclick="nudgeSwath(1)">+1</button>
+      <button onclick="nudgeSwath(5)">+5</button>
+    </div>
+    <input type="number" id="swathEditInput" value="40" min="1" max="300" inputmode="numeric">
+    <button id="swathEditOk" onclick="closeSwathEdit()">SET ✓</button>
+  </div>
+</div>
+
+<!-- ══ FIELD MAPPING OVERLAY ══ -->
+
+<div id="fieldMapOverlay">
+  <canvas id="fieldMapOvCanvas"></canvas>
+  <div id="fieldMapOvBar">
+    <button class="fmBtn" onclick="undoFieldPoint()">↩ UNDO</button>
+    <div id="fieldMapAcres">0.00 acres</div>
+    <button class="fmBtn" id="fieldMapFinish" onclick="finishFieldMapping()">FINISH</button>
+  </div>
+</div>
+
+<!-- ══ NAV BAR ══ -->
+
+<div id="navBar">
+  <button class="navBtn active" onclick="showScreen('driveScreen')" id="nav-drive">
+    <svg viewBox="0 0 24 24" fill="none"><polygon points="12,2 22,22 2,22" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+    Drive
+  </button>
+  <button class="navBtn" onclick="showScreen('fieldsScreen')" id="nav-fields">
+    <svg viewBox="0 0 24 24" fill="none"><polygon points="2,12 12,2 22,12 12,22" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+    Fields
+  </button>
+  <button class="navBtn" onclick="showScreen('worklogScreen')" id="nav-worklog">
+    <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="2" width="16" height="20" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="8" x2="16" y2="8" stroke="currentColor" stroke-width="2"/><line x1="8" y1="13" x2="16" y2="13" stroke="currentColor" stroke-width="2"/><line x1="8" y1="18" x2="12" y2="18" stroke="currentColor" stroke-width="2"/></svg>
+    Work Log
+  </button>
+  <button class="navBtn" onclick="showScreen('equipScreen')" id="nav-equip">
+    <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="2"/></svg>
+    Equipment
+  </button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+var S = {
+  swathFt: 40, units: 'acres', offset: 'none',
+  recording: false, loopMode: false,
+  courseUp: true, following: true,
+  passes: [], curPass: [],
+  gpsReady: false, heading: null,
+  origin: null, curMX: 0, curMY: 0,
+  camMX: 0, camMY: 0,
+  scale: 2,
+  abLine: null,
+  abStep: 0,
+  fields: [],
+  activeFieldIdx: -1,
+  worklog: [],
+  sessionStart: null,
+  currentJob: null,
+  watchId: null,
+  mapTiles: [],
+  tileZoom: 18
+};
+var cv, ctx, lt=null, pd=null;
+
+// ═══════════════════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════════════════
+var KEY = 'spraytrack_v3';
+function save() {
+  if (!S.origin) return;
+  try {
+    localStorage.setItem(KEY, JSON.stringify({
+      swathFt:S.swathFt, units:S.units, offset:S.offset,
+      origin:S.origin, passes:S.passes, abLine:S.abLine,
+      fields:S.fields, worklog:S.worklog, ts:Date.now()
+    }));
+  } catch(e) {}
+}
+function load() { try { return JSON.parse(localStorage.getItem(KEY)); } catch(e){ return null; } }
+function clearSave() { try { localStorage.removeItem(KEY); } catch(e){} }
+
+// ═══════════════════════════════════════════════════
+// SETUP
+// ═══════════════════════════════════════════════════
+(function initSetup() {
+  var saved = load();
+  if (saved && saved.passes && saved.passes.length > 0) {
+    document.getElementById('orDiv').style.display = 'block';
+    document.getElementById('resumeBtn').style.display = 'block';
+    var loops = saved.passes.filter(function(p){return p.loop;}).length;
+    var ps = saved.passes.length - loops;
+    var parts = [];
+    if (ps) parts.push(ps+(ps===1?' PASS':' PASSES'));
+    if (loops) parts.push(loops+(loops===1?' LOOP':' LOOPS'));
+    document.getElementById('resumeMeta').textContent = parts.join(' · ')+' · '+fmtTime(saved.ts);
+  }
+  document.getElementById('resumeBtn').addEventListener('click', function() {
+    var saved2 = load();
+    S.swathFt=saved2.swathFt||40; S.units=saved2.units||'acres';
+    S.offset=saved2.offset||'none'; S.origin=saved2.origin;
+    S.passes=saved2.passes; S.abLine=saved2.abLine||null;
+    S.fields=saved2.fields||[]; S.worklog=saved2.worklog||[];
+    S.gpsReady=true;
+    applySettings(); launch();
+    updateBadge(); calcArea();
+    renderFieldsList();
+    renderWorklog();
+    toast('RESUMED');
+  });
+  document.getElementById('goBtn').addEventListener('click', function() {
+    var saved3 = load();
+    S.swathFt=parseFloat(document.getElementById('inSwath').value)||40;
+    S.units=document.getElementById('inUnits').value;
+    // Preserve fields and worklog across sessions
+    if (saved3) { S.fields=saved3.fields||[]; S.worklog=saved3.worklog||[]; }
+    clearSave();
+    applySettings(); launch();
+    renderFieldsList(); renderWorklog();
+  });
+})();
+
+function applySettings() {
+  document.getElementById('swathDisplay').textContent = S.swathFt + ' ft  ✎';
+  document.getElementById('swathEditInput').value = S.swathFt;
+  document.getElementById('mUnit').textContent = S.units === 'acres' ? 'ACRES' : 'HECT';
+  document.getElementById('equipWidth').textContent = S.swathFt.toFixed(1);
+  setOffset(S.offset, true);
+  updateSwathColor();
+}
+
+function updateSwathColor() {
+  var el = document.getElementById('swathDisplay');
+  el.style.color = '#39FF14';
+  el.textContent = S.swathFt + ' ft  ✎';
+}
+function fmtTime(ts) {
+  if(!ts)return'';
+  var d=new Date(ts);
+  var h=d.getHours(),m=d.getMinutes(),ap=h>=12?'PM':'AM';
+  return (d.getMonth()+1)+'/'+d.getDate()+' '+(h%12||12)+':'+(m<10?'0':'')+m+' '+ap;
+}
+function fmtDuration(ms) {
+  var h=Math.floor(ms/3600000);
+  var m=Math.floor((ms%3600000)/60000);
+  return h+'h '+m+'m';
+}
+function launch() {
+  document.getElementById('setupScreen').classList.add('gone');
+  initCanvas(); startGPS(); doWakeLock(); initOrientation();
+  S.sessionStart = Date.now();
+  S.currentJob = { startTime: S.sessionStart, field: 'No Field', passes: 0, acres: 0 };
+  renderWorklog();
+}
+
+// ═══════════════════════════════════════════════════
+// SCREEN NAV
+// ═══════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.navBtn').forEach(function(b){ b.classList.remove('active'); });
+  var map = {driveScreen:'nav-drive',fieldsScreen:'nav-fields',worklogScreen:'nav-worklog',equipScreen:'nav-equip'};
+  if (map[id]) document.getElementById(map[id]).classList.add('active');
+  if (id==='fieldsScreen') renderFieldsList();
+  if (id==='worklogScreen') renderWorklog();
+  if (id==='driveScreen') { setTimeout(function(){ if(cv)resizeCanvas(); },50); }
+}
+
+// ═══════════════════════════════════════════════════
+// SATELLITE TILES  (OpenStreetMap fallback → free!)
+// We use tile.openstreetmap.org but styled dark, or
+// use a free satellite provider via ESRI ArcGIS
+// ═══════════════════════════════════════════════════
+function latLonToTile(lat, lon, zoom) {
+  var n = Math.pow(2, zoom);
+  var x = Math.floor((lon + 180) / 360 * n);
+  var latR = lat * Math.PI / 180;
+  var y = Math.floor((1 - Math.log(Math.tan(latR) + 1/Math.cos(latR)) / Math.PI) / 2 * n);
+  return { x: x, y: y, z: zoom };
+}
+function tileToLatLon(tx, ty, zoom) {
+  var n = Math.pow(2, zoom);
+  var lon = tx / n * 360 - 180;
+  var latR = Math.atan(Math.sinh(Math.PI * (1 - 2*ty/n)));
+  return { lat: latR * 180 / Math.PI, lon: lon };
+}
+
+function updateTiles() {
+  if (!S.origin || !cv) return;
+  var tileLayer = document.getElementById('tileLayer');
+  tileLayer.innerHTML = '';
+
+  // Pick zoom level based on current scale
+  var zoom = S.tileZoom;
+
+  // Meters per tile pixel at this zoom and latitude
+  var mpp = getTileMetersPerPixel(S.origin.lat, zoom); // meters per tile pixel
+
+  // On screen: S.scale = pixels per meter (our world scale)
+  // So one tile pixel = S.scale * mpp screen pixels
+  // One full tile (256px) = 256 * S.scale * mpp screen pixels
+  var tileSizePx = 256 * S.scale * mpp; // screen pixels per tile
+
+  // Current position in tile coordinates (fractional)
+  var curTile = latLonToTile(
+    S.origin.lat + myToLat(S.curMY),
+    S.origin.lon + mxToLon(S.curMX),
+    zoom
+  );
+
+  // The fractional offset within the current tile
+  var fracX = curTile.x - Math.floor(curTile.x);  // not used but helpful conceptually
+  // Actually latLonToTile returns integer tiles, so compute fractional manually
+  var n = Math.pow(2, zoom);
+  var curLat = S.origin.lat + myToLat(S.curMY);
+  var curLon = S.origin.lon + mxToLon(S.curMX);
+  var fracTileX = (curLon + 180) / 360 * n;
+  var latR = curLat * Math.PI / 180;
+  var fracTileY = (1 - Math.log(Math.tan(latR) + 1/Math.cos(latR)) / Math.PI) / 2 * n;
+
+  // Screen anchor: tractor dot position
+  var W = cv.width / (window.devicePixelRatio || 1);
+  var H = cv.height / (window.devicePixelRatio || 1);
+  var dotX = W / 2;
+  var dotY = S.courseUp ? H * 0.68 : H / 2;
+
+  // How many tiles to draw in each direction
+  var tilesX = Math.ceil(W / tileSizePx) + 2;
+  var tilesY = Math.ceil(H / tileSizePx) + 2;
+
+  var centerTileX = Math.floor(fracTileX);
+  var centerTileY = Math.floor(fracTileY);
+
+  // Pixel offset of center tile's top-left from the dot
+  var offsetX = dotX - (fracTileX - centerTileX) * tileSizePx;
+  var offsetY = dotY - (fracTileY - centerTileY) * tileSizePx;
+
+  for (var tx = centerTileX - tilesX; tx <= centerTileX + tilesX; tx++) {
+    for (var ty = centerTileY - tilesY; ty <= centerTileY + tilesY; ty++) {
+      var img = document.createElement('img');
+      img.src = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/'
+                + zoom + '/' + ty + '/' + tx;
+      var screenX = offsetX + (tx - centerTileX) * tileSizePx;
+      var screenY = offsetY + (ty - centerTileY) * tileSizePx;
+      img.style.left   = screenX + 'px';
+      img.style.top    = screenY + 'px';
+      img.style.width  = tileSizePx + 'px';
+      img.style.height = tileSizePx + 'px';
+      img.style.position = 'absolute';
+      img.draggable = false;
+      img.loading = 'lazy';
+      tileLayer.appendChild(img);
+    }
+  }
+}
+
+function getTileMetersPerPixel(lat, zoom) {
+  return 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
+}
+function mxFromLonAbs(lon) {
+  if (!S.origin) return 0;
+  var R = 6371000;
+  return R * (lon - S.origin.lon) * Math.PI / 180 * Math.cos(S.origin.lat * Math.PI / 180);
+}
+function myFromLatAbs(lat) {
+  if (!S.origin) return 0;
+  return 6371000 * (lat - S.origin.lat) * Math.PI / 180;
+}
+function mxToLon(mx) {
+  if (!S.origin) return 0;
+  var R = 6371000;
+  return mx / (R * Math.PI / 180 * Math.cos(S.origin.lat * Math.PI / 180));
+}
+function myToLat(my) {
+  return my / 6371000 * 180 / Math.PI;
+}
+
+// ═══════════════════════════════════════════════════
+// CANVAS
+// ═══════════════════════════════════════════════════
+function initCanvas() {
+  cv  = document.getElementById('mapCanvas');
+  ctx = cv.getContext('2d');
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+  cv.addEventListener('touchstart', onTS, { passive:false });
+  cv.addEventListener('touchmove',  onTM, { passive:false });
+  cv.addEventListener('touchend', function(){ lt=null; pd=null; });
+  cv.addEventListener('click', onMapClick);
+}
+function resizeCanvas() {
+  var wrap = document.getElementById('mapWrap');
+  var dpr  = window.devicePixelRatio||1;
+  cv.width  = wrap.clientWidth  * dpr;
+  cv.height = wrap.clientHeight * dpr;
+  cv.style.width  = wrap.clientWidth  + 'px';
+  cv.style.height = wrap.clientHeight + 'px';
+  draw();
+}
+
+// Touch
+function onTS(e) {
+  if (e.touches.length===1){ lt={x:e.touches[0].clientX, y:e.touches[0].clientY}; pd=null; }
+  else if (e.touches.length===2){ pd=tdist(e.touches); lt=null; }
+}
+function onTM(e) {
+  e.preventDefault();
+  if (e.touches.length===1 && lt && !S.courseUp) {
+    var dpr=window.devicePixelRatio||1;
+    S.camMX -= (e.touches[0].clientX-lt.x)/S.scale;
+    S.camMY += (e.touches[0].clientY-lt.y)/S.scale;
+    lt={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    setFollow(false); draw();
+  } else if (e.touches.length===2 && pd) {
+    var d = tdist(e.touches);
+    var newScale = Math.max(0.5, Math.min(40, S.scale * d / pd));
+    S.scale = newScale;
+    S.tileZoom = scaleToZoom(S.scale);
+    pd = d; updateTiles(); draw();
+  }
+}
+function tdist(t){var dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
+function scaleToZoom(sc) {
+  // S.scale is pixels per meter. Pick tile zoom so tiles are sharp not blurry.
+  // At zoom Z, one tile pixel = mpp meters. We want tileSizePx = 256*sc*mpp ≈ 200-400px
+  // mpp at zoom Z ≈ 156543 * cos(lat) / 2^Z  (at equator cos=1)
+  // tileSizePx = 256 * sc * mpp
+  // We want tileSizePx between ~200-600px for sharpness
+  // So pick Z such that 256 * sc * 156543/2^Z ≈ 300
+  // 2^Z ≈ 256 * sc * 156543 / 300
+  var target = 256 * sc * 156543 / 300;
+  var z = Math.round(Math.log2(target));
+  return Math.max(14, Math.min(20, z));
+}
+
+// Map click — used for AB line setting
+function onMapClick(e) {
+  if (S.abStep === 0) return;
+  var rect = cv.getBoundingClientRect();
+  var dpr = window.devicePixelRatio||1;
+  var cx = (e.clientX - rect.left) * dpr;
+  var cy = (e.clientY - rect.top)  * dpr;
+  // Convert screen coords back to world coords
+  var W=cv.width, H=cv.height;
+  var dotX=W/2, dotY=H*0.68;
+  var rot=(S.courseUp&&S.heading!==null)?(S.heading*Math.PI/180):0;
+  var cosR=Math.cos(rot),sinR=Math.sin(rot);
+  var sc=S.scale*dpr;
+  var refMX=(S.courseUp||S.following)?S.curMX:S.camMX;
+  var refMY=(S.courseUp||S.following)?S.curMY:S.camMY;
+  // Invert the projection
+  var sdx=cx-dotX, sdy=cy-dotY;
+  var rdx= sdx*cosR - sdy*sinR;
+  var rdy= sdx*sinR + sdy*cosR;
+  var wmx = refMX + rdx/sc;
+  var wmy = refMY - rdy/sc; // Note: ssy was dotY-(dy*cosR-dx*sinR)*sc... let's keep it simple
+  wmy = refMY + (-sdy*cosR - sdx*sinR)/sc; // corrected
+
+  if (S.abStep===1) {
+    S.abLine = { ax:S.curMX, ay:S.curMY, bx:null, by:null };
+    S.abStep=2;
+    document.getElementById('abBtn').textContent='SET B POINT';
+    document.getElementById('abBtn').classList.add('amber');
+    toast('A SET — DRIVE TO B POINT AND TAP');
+  } else if (S.abStep===2) {
+    S.abLine.bx = S.curMX; S.abLine.by = S.curMY;
+    S.abStep=0;
+    document.getElementById('abBtn').textContent='AB ✓';
+    document.getElementById('abBtn').classList.remove('amber');
+    document.getElementById('abBtn').classList.add('on');
+    save(); draw(); toast('AB LINE SET');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// GPS
+// ═══════════════════════════════════════════════════
+function startGPS() {
+  if (!navigator.geolocation){ toast('NO GPS'); return; }
+  S.watchId = navigator.geolocation.watchPosition(onPos, onErr, {
+    enableHighAccuracy:true, maximumAge:500, timeout:15000
+  });
+}
+function onPos(p) {
+  var lat=p.coords.latitude, lon=p.coords.longitude;
+  var spd=p.coords.speed, hdg=p.coords.heading, acc=p.coords.accuracy;
+  if (!S.origin) {
+    S.origin={lat:lat,lon:lon}; S.gpsReady=true;
+    document.getElementById('gpsDot').className='dot on';
+    updateTiles();
+  }
+  document.getElementById('gpsText').textContent='GPS ±'+Math.round(acc)+'ft';
+  S.curMX=mxFromLonAbs(lon); S.curMY=myFromLatAbs(lat);
+  if (S.following||S.courseUp){ S.camMX=S.curMX; S.camMY=S.curMY; updateTiles(); }
+  var mph=(spd!=null&&spd>0)?spd*2.23694:0;
+  document.getElementById('mSpeed').textContent=mph.toFixed(1);
+  if (hdg!=null&&spd!=null&&spd>0.2) {
+    if (S.heading===null){ S.heading=hdg; }
+    else {
+      var diff=hdg-S.heading;
+      if(diff>180)diff-=360; if(diff<-180)diff+=360;
+      S.heading=(S.heading+diff*0.25+360)%360;
+    }
+    document.getElementById('mHead').textContent=Math.round(S.heading);
+  }
+  if (S.recording && spd != null && spd > 0.5) {  // must be > ~1.1 mph
+    var minDist = S.curPass.length < 3 ? 5 : 3;    // stricter at start to kill initial drift
+    var ok = true;
+    if (S.curPass.length > 0) {
+      var last = S.curPass[S.curPass.length - 1];
+      var ddx = S.curMX - last.mx, ddy = S.curMY - last.my;
+      if (Math.sqrt(ddx*ddx + ddy*ddy) < minDist) ok = false;
+    }
+    // Also sanity-check: point can't jump more than 30m from last point (GPS glitch)
+    if (S.curPass.length > 0) {
+      var last2 = S.curPass[S.curPass.length - 1];
+      var jump = Math.sqrt(Math.pow(S.curMX-last2.mx,2) + Math.pow(S.curMY-last2.my,2));
+      if (jump > 30) ok = false;
+    }
+    if (ok) { S.curPass.push({mx:S.curMX, my:S.curMY}); calcArea(); }
+  }
+  draw(); updateLightbar();
+}
+function onErr(e){
+  document.getElementById('gpsDot').className='dot';
+  document.getElementById('gpsText').textContent=e.code===1?'DENIED':'NO GPS';
+  if(e.code===1)toast('ALLOW LOCATION IN SETTINGS');
+}
+function mxFromLon(lon){ return mxFromLonAbs(lon); }
+function myFromLat(lat){ return myFromLatAbs(lat); }
+
+// ═══════════════════════════════════════════════════
+// DRAW
+// ═══════════════════════════════════════════════════
+function draw() {
+  if (!cv||!ctx) return;
+  var W=cv.width, H=cv.height, dpr=window.devicePixelRatio||1, sc=S.scale*dpr;
+  ctx.clearRect(0,0,W,H);
+
+  var dotX=W/2, dotY=S.courseUp?H*0.68:H/2;
+  var refMX=(S.courseUp||S.following)?S.curMX:S.camMX;
+  var refMY=(S.courseUp||S.following)?S.curMY:S.camMY;
+  var rot=(S.courseUp&&S.heading!==null)?(S.heading*Math.PI/180):0;
+  var cosR=Math.cos(rot), sinR=Math.sin(rot);
+
+  function sx(mx,my){ var dx=mx-refMX,dy=my-refMY; return dotX+(dx*cosR+dy*sinR)*sc; }
+  function sy(mx,my){ var dx=mx-refMX,dy=my-refMY; return dotY-(dy*cosR-dx*sinR)*sc; }
+
+  var swM=S.swathFt*0.3048;
+
+  // Active field boundary
+  if (S.activeFieldIdx>=0 && S.fields[S.activeFieldIdx]) {
+    drawFieldBoundary(S.fields[S.activeFieldIdx], sx, sy);
+  }
+
+  // AB Line
+  if (S.abLine && S.abLine.bx!==null) {
+    drawABLine(sx, sy, W, H, dpr);
+  }
+
+  // Completed passes
+  for (var i=0;i<S.passes.length;i++){ drawPass(S.passes[i].pts,swM,sx,sy,false,S.passes[i].loop); }
+  // Ghost line
+  if (S.passes.length>0&&!S.recording) drawGhost(swM,sx,sy);
+  // Current pass
+  if (S.curPass.length>1) drawPass(S.curPass,swM,sx,sy,true,S.loopMode);
+
+  // Tractor arrow — points in direction of travel
+  if (S.gpsReady) {
+    var size = 28 * dpr; // half-length of arrow
+
+    // In course-up: arrow always points straight up (heading=up by definition)
+    // In north-up: rotate to actual heading
+    var arrowAngle = S.courseUp
+      ? -Math.PI / 2
+      : (S.heading !== null ? (S.heading - 90) * Math.PI / 180 : -Math.PI / 2);
+
+    ctx.save();
+    ctx.translate(dotX, dotY);
+    ctx.rotate(arrowAngle + Math.PI / 2); // rotate so tip points in travel direction
+
+    var color = S.recording ? '#FF3B30' : '#39FF14';
+
+    // Glow halo
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 1.4, 0, Math.PI * 2);
+    ctx.fillStyle = S.recording ? 'rgba(255,59,48,0.15)' : 'rgba(57,255,20,0.12)';
+    ctx.fill();
+
+    // Arrow/chevron shape — tip points UP (negative Y)
+    // Tip at top, two rear corners, notched tail
+    var tip  = { x: 0,          y: -size };
+    var rr   = { x:  size*0.55, y:  size*0.55 };
+    var rl   = { x: -size*0.55, y:  size*0.55 };
+    var notch = { x: 0,         y:  size*0.2 };  // center notch
+
+    ctx.beginPath();
+    ctx.moveTo(tip.x,   tip.y);
+    ctx.lineTo(rr.x,    rr.y);
+    ctx.lineTo(notch.x, notch.y);
+    ctx.lineTo(rl.x,    rl.y);
+    ctx.closePath();
+
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    // White outline
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.5 * dpr;
+    ctx.stroke();
+
+    // Dark center dot for precision reference
+    ctx.beginPath();
+    ctx.arc(0, 0, 3 * dpr, 0, Math.PI * 2);
+    ctx.fillStyle = '#000';
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  // North indicator
+  if (S.courseUp&&S.heading!==null) drawNorth(W,H,dpr);
+  // Scale bar
+  drawScaleBar(W,H,dpr,sc);
+}
+
+function drawFieldBoundary(field, sx, sy) {
+  if (!field||!field.worldPts||field.worldPts.length<3) return;
+  var pts=field.worldPts;
+  ctx.beginPath();
+  ctx.moveTo(sx(pts[0].mx,pts[0].my),sy(pts[0].mx,pts[0].my));
+  for(var i=1;i<pts.length;i++) ctx.lineTo(sx(pts[i].mx,pts[i].my),sy(pts[i].mx,pts[i].my));
+  ctx.closePath();
+  ctx.strokeStyle='#39FF14'; ctx.lineWidth=3*(window.devicePixelRatio||1);
+  ctx.fillStyle='rgba(57,255,20,0.05)'; ctx.fill(); ctx.stroke();
+}
+
+function drawABLine(sx, sy, W, H, dpr) {
+  if (!S.abLine||S.abLine.bx===null) return;
+  var ax=S.abLine.ax,ay=S.abLine.ay,bx=S.abLine.bx,by=S.abLine.by;
+  // Extend AB line across the full screen
+  var dx=bx-ax, dy=by-ay;
+  var len=Math.sqrt(dx*dx+dy*dy)||1;
+  var ext=2000; // extend 2km each direction
+  var x1=ax-dx/len*ext, y1=ay-dy/len*ext;
+  var x2=bx+dx/len*ext, y2=by+dy/len*ext;
+  ctx.beginPath();
+  ctx.moveTo(sx(x1,y1),sy(x1,y1));
+  ctx.lineTo(sx(x2,y2),sy(x2,y2));
+  ctx.strokeStyle='#FFD60A'; ctx.lineWidth=3*dpr;
+  ctx.setLineDash([12*dpr,6*dpr]); ctx.stroke(); ctx.setLineDash([]);
+  // AB labels
+  var sax=sx(ax,ay), say=sy(ax,ay);
+  var sbx=sx(bx,by), sby=sy(bx,by);
+  function abLabel(x,y,lbl) {
+    ctx.beginPath(); ctx.arc(x,y,10*dpr,0,Math.PI*2);
+    ctx.fillStyle='#FFD60A'; ctx.fill();
+    ctx.fillStyle='#000'; ctx.font='bold '+(10*dpr)+'px monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(lbl,x,y);
+  }
+  if(sax>-50&&sax<W+50&&say>-50&&say<H+50) abLabel(sax,say,'A');
+  if(sbx>-50&&sbx<W+50&&sby>-50&&sby<H+50) abLabel(sbx,sby,'B');
+}
+
+function drawPass(pts,swM,sx,sy,active,isLoop) {
+  if(pts.length<2) return;
+  var L=[],R=[];
+  for(var i=0;i<pts.length;i++){
+    var dmx,dmy;
+    if(i<pts.length-1){dmx=pts[i+1].mx-pts[i].mx;dmy=pts[i+1].my-pts[i].my;}
+    else if(isLoop&&pts.length>2){dmx=pts[1].mx-pts[0].mx;dmy=pts[1].my-pts[0].my;}
+    else{dmx=pts[i].mx-pts[i-1].mx;dmy=pts[i].my-pts[i-1].my;}
+    var len=Math.sqrt(dmx*dmx+dmy*dmy)||1;
+    var ox=(dmy/len)*(swM/2), oy=(dmx/len)*(swM/2);
+    L.push({mx:pts[i].mx-ox,my:pts[i].my-oy});
+    R.push({mx:pts[i].mx+ox,my:pts[i].my+oy});
+  }
+  if(isLoop&&pts.length>3){
+    ctx.beginPath();
+    ctx.moveTo(sx(R[0].mx,R[0].my),sy(R[0].mx,R[0].my));
+    for(var j=1;j<R.length;j++) ctx.lineTo(sx(R[j].mx,R[j].my),sy(R[j].mx,R[j].my));
+    ctx.closePath();
+    ctx.moveTo(sx(L[0].mx,L[0].my),sy(L[0].mx,L[0].my));
+    for(var k=1;k<L.length;k++) ctx.lineTo(sx(L[k].mx,L[k].my),sy(L[k].mx,L[k].my));
+    ctx.closePath();
+    ctx.fillStyle=active?'rgba(57,255,20,0.45)':'rgba(57,255,20,0.25)';
+    ctx.fill('evenodd');
+    ctx.strokeStyle=active?'#39FF14':'rgba(57,255,20,0.7)';
+    ctx.lineWidth=(active?2.5:1.5)*(window.devicePixelRatio||1); ctx.stroke();
+  } else {
+    var poly=L.concat(R.slice().reverse());
+    ctx.beginPath();
+    ctx.moveTo(sx(poly[0].mx,poly[0].my),sy(poly[0].mx,poly[0].my));
+    for(var j=1;j<poly.length;j++) ctx.lineTo(sx(poly[j].mx,poly[j].my),sy(poly[j].mx,poly[j].my));
+    ctx.closePath();
+    ctx.fillStyle=active?'rgba(57,255,20,0.45)':'rgba(57,255,20,0.22)';
+    ctx.fill();
+    ctx.strokeStyle=active?'#39FF14':'rgba(57,255,20,0.6)';
+    ctx.lineWidth=(active?2.5:1.5)*(window.devicePixelRatio||1); ctx.stroke();
+  }
+}
+
+function drawGhost(swM,sx,sy) {
+  var best=null,bestD=Infinity;
+  for(var i=0;i<S.passes.length;i++){
+    var info=distToPass(S.passes[i].pts,S.curMX,S.curMY);
+    if(Math.abs(info.dist)<bestD){bestD=Math.abs(info.dist);best=S.passes[i];}
+  }
+  if(!best||best.pts.length<2) return;
+  var pts=best.pts;
+  var sign=distToPass(pts,S.curMX,S.curMY).lateral>=0?1:-1;
+  ctx.beginPath(); ctx.setLineDash([10,7]);
+  ctx.strokeStyle='rgba(57,255,20,0.4)'; ctx.lineWidth=2;
+  for(var i=0;i<pts.length;i++){
+    var dmx,dmy;
+    if(i<pts.length-1){dmx=pts[i+1].mx-pts[i].mx;dmy=pts[i+1].my-pts[i].my;}
+    else{dmx=pts[i].mx-pts[i-1].mx;dmy=pts[i].my-pts[i-1].my;}
+    var len=Math.sqrt(dmx*dmx+dmy*dmy)||1;
+    var nx=dmy/len, ny=-dmx/len;
+    var gmx=pts[i].mx+nx*swM*sign, gmy=pts[i].my+ny*swM*sign;
+    if(i===0) ctx.moveTo(sx(gmx,gmy),sy(gmx,gmy));
+    else ctx.lineTo(sx(gmx,gmy),sy(gmx,gmy));
+  }
+  ctx.stroke(); ctx.setLineDash([]);
+}
+
+function drawNorth(W,H,dpr) {
+  var cx=W-40*dpr,cy=40*dpr,r=20*dpr;
+  var na=-Math.PI/2-(S.heading*Math.PI/180);
+  ctx.save(); ctx.translate(cx,cy);
+  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
+  ctx.fillStyle='rgba(8,13,8,0.88)'; ctx.fill();
+  ctx.strokeStyle='#1a2a1a'; ctx.lineWidth=1.5; ctx.stroke();
+  var tx=Math.cos(na)*(r-6),ty=Math.sin(na)*(r-6);
+  ctx.beginPath(); ctx.moveTo(-tx*0.5,-ty*0.5); ctx.lineTo(tx,ty);
+  ctx.strokeStyle='#FF3B30'; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.fillStyle='#FF3B30'; ctx.font='bold '+(9*dpr)+'px monospace';
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('N',tx*0.55,ty*0.55);
+  ctx.restore();
+}
+function drawScaleBar(W,H,dpr,sc) {
+  var barM=30.48;
+  var barPx=barM*sc;
+  var bx=16*dpr,by=H-28*dpr;
+  ctx.fillStyle='rgba(255,255,255,0.7)';
+  ctx.fillRect(bx,by,barPx,2*dpr);
+  ctx.fillRect(bx,by-4*dpr,2*dpr,10*dpr);
+  ctx.fillRect(bx+barPx-2*dpr,by-4*dpr,2*dpr,10*dpr);
+  ctx.font=(9*dpr)+'px monospace';
+  ctx.fillStyle='rgba(255,255,255,0.7)';
+  ctx.textAlign='left'; ctx.textBaseline='bottom';
+  ctx.fillText('100 ft',bx,by-6*dpr);
+}
+
+// ═══════════════════════════════════════════════════
+// LIGHTBAR
+// ═══════════════════════════════════════════════════
+function updateLightbar() {
+  var lb=document.getElementById('lightbar');
+  var lbTxt=document.getElementById('lbText');
+  var lbDts=document.getElementById('lbDots');
+  // Use AB line for guidance if set, else nearest pass
+  var errFt=null;
+  if (S.abLine&&S.abLine.bx!==null) {
+    errFt = abLineOffset();
+  } else if (S.passes.length>0) {
+    var bestLat=Infinity,bestPass=null;
+    for(var i=0;i<S.passes.length;i++){
+      var info=distToPass(S.passes[i].pts,S.curMX,S.curMY);
+      if(Math.abs(info.lateral)<Math.abs(bestLat)){bestLat=info.lateral;bestPass=S.passes[i];}
+    }
+    if(bestPass){
+      var swM=S.swathFt*0.3048;
+      var ideal=bestLat>=0?swM-bestLat:-(swM+bestLat);
+      errFt=ideal/0.3048;
+    }
+  }
+  if(errFt===null){lb.classList.remove('show');return;}
+  var DOTS=9,mid=4;
+  var deflect=Math.round((errFt/(S.swathFt*0.55))*mid);
+  deflect=Math.max(-mid,Math.min(mid,deflect));
+  lbDts.innerHTML='';
+  for(var d=0;d<DOTS;d++){
+    var el=document.createElement('div');
+    el.className='lbd'+(d===mid?' cx':'');
+    var lit=(deflect>0&&d>mid&&d<=mid+deflect)||(deflect<0&&d<mid&&d>=mid+deflect)||(deflect===0&&d===mid);
+    if(lit){var a=Math.abs(deflect);el.classList.add(a<=1?'g':a<=2?'a':'r');}
+    lbDts.appendChild(el);
+  }
+  var absErr=Math.abs(errFt);
+  if(absErr<2){lbTxt.textContent='✓ ON TRACK';lbTxt.style.color='#39FF14';}
+  else{
+    var dir=errFt>0?'← LEFT':'RIGHT →';
+    lbTxt.textContent=dir+' '+absErr.toFixed(0)+'ft';
+    lbTxt.style.color=absErr>S.swathFt*0.3?'#FF3B30':'#FFB800';
+  }
+  lb.classList.add('show');
+}
+
+function abLineOffset() {
+  // Perpendicular distance from current position to AB line
+  // + = right of AB direction, - = left
+  var ax=S.abLine.ax,ay=S.abLine.ay,bx=S.abLine.bx,by=S.abLine.by;
+  var dx=bx-ax,dy=by-ay;
+  var len=Math.sqrt(dx*dx+dy*dy)||1;
+  var cross=(dx*(S.curMY-ay)-dy*(S.curMX-ax))/len;
+  // cross > 0 = left of AB, < 0 = right
+  // Want: how far to next parallel pass line
+  var swM=S.swathFt*0.3048;
+  var passNum=Math.round(cross/swM);
+  var idealDist=passNum*swM;
+  var err=(cross-idealDist)/0.3048;
+  return -err; // flip so positive = steer left
+}
+
+function distToPass(pts,mx,my) {
+  var minD=Infinity,lat=0,dist=0;
+  for(var i=0;i<pts.length-1;i++){
+    var ax=pts[i].mx,ay=pts[i].my,bx=pts[i+1].mx,by=pts[i+1].my;
+    var abx=bx-ax,aby=by-ay,len2=abx*abx+aby*aby;
+    if(len2===0)continue;
+    var t=Math.max(0,Math.min(1,((mx-ax)*abx+(my-ay)*aby)/len2));
+    var cx2=ax+t*abx,cy2=ay+t*aby;
+    var dx=mx-cx2,dy=my-cy2;
+    var d=Math.sqrt(dx*dx+dy*dy);
+    if(d<minD){minD=d;dist=d;var cross=abx*dy-aby*dx;lat=cross>=0?d:-d;}
+  }
+  return{lateral:lat,dist:dist};
+}
+
+// ═══════════════════════════════════════════════════
+// AB LINE
+// ═══════════════════════════════════════════════════
+document.getElementById('abBtn').addEventListener('click', function() {
+  if (S.abStep===0) {
+    // Start AB line setting
+    if (!S.gpsReady){toast('WAITING FOR GPS');return;}
+    S.abStep=1;
+    S.abLine={ax:S.curMX,ay:S.curMY,bx:null,by:null};
+    this.textContent='A SET — DRIVE TO B';
+    this.classList.add('amber');
+    toast('A POINT SET AT YOUR LOCATION — DRIVE TO B THEN TAP AB AGAIN');
+  } else if (S.abStep===1) {
+    S.abLine.bx=S.curMX; S.abLine.by=S.curMY;
+    S.abStep=0;
+    this.textContent='AB ✓';
+    this.classList.remove('amber'); this.classList.add('on');
+    save(); draw(); toast('AB LINE SET');
+  } else if (S.abStep===0 && S.abLine&&S.abLine.bx!==null) {
+    // Clear AB line
+    S.abLine=null; S.abStep=0;
+    this.textContent='AB LINE';
+    this.classList.remove('on','amber');
+    save(); draw(); toast('AB LINE CLEARED');
+  }
+});
+
+// ═══════════════════════════════════════════════════
+// AREA / BADGE
+// ═══════════════════════════════════════════════════
+function calcArea() {
+  var swM=S.swathFt*0.3048,total=0;
+  var all=S.recording?S.passes.concat([{pts:S.curPass,loop:S.loopMode}]):S.passes;
+  for(var i=0;i<all.length;i++){
+    var pts=all[i].pts;
+    for(var j=1;j<pts.length;j++){
+      var dx=pts[j].mx-pts[j-1].mx,dy=pts[j].my-pts[j-1].my;
+      total+=Math.sqrt(dx*dx+dy*dy)*swM;
+    }
+  }
+  var area=S.units==='acres'?total/4046.86:total/10000;
+  document.getElementById('mArea').textContent=area.toFixed(2);
+  if(S.currentJob) S.currentJob.acres=area;
+  return area;
+}
+function updateBadge() {
+  var loops=S.passes.filter(function(p){return p.loop;}).length;
+  var ps=S.passes.length-loops;
+  var parts=[];
+  if(ps)parts.push(ps+(ps===1?' PASS':' PASSES'));
+  if(loops)parts.push(loops+(loops===1?' LOOP':' LOOPS'));
+  document.getElementById('passBadge').textContent=parts.length?parts.join(' · '):'0 PASSES';
+}
+
+// ═══════════════════════════════════════════════════
+// RECORD / UNDO / CLEAR
+// ═══════════════════════════════════════════════════
+document.getElementById('recBtn').addEventListener('click', function() {
+  if(!S.gpsReady){toast('WAITING FOR GPS');return;}
+  if(!S.recording){
+    S.recording=true; S.curPass=[];
+    this.textContent=S.loopMode?'⏹ END LOOP':'⏹ END PASS';
+    this.classList.add('rec'); setFollow(true);
+    toast(S.loopMode?'LOOP STARTED':'PASS STARTED');
+  } else {
+    S.recording=false;
+    if(S.curPass.length>1){
+      S.passes.push({pts:S.curPass.slice(),loop:S.loopMode});
+      updateBadge(); calcArea(); save();
+      if(S.currentJob) S.currentJob.passes=S.passes.length;
+      toast((S.loopMode?'LOOP ':'PASS ')+S.passes.length+' SAVED');
+    } else { toast('TOO SHORT — DRIVE FIRST'); }
+    S.curPass=[];
+    this.textContent=S.loopMode?'▶ START LOOP':'▶ START PASS';
+    this.classList.remove('rec'); draw();
+  }
+});
+document.getElementById('undoBtn').addEventListener('click', function() {
+  if(S.recording){
+    S.recording=false; S.curPass=[];
+    document.getElementById('recBtn').textContent=S.loopMode?'▶ START LOOP':'▶ START PASS';
+    document.getElementById('recBtn').classList.remove('rec');
+    toast('CANCELLED'); draw(); return;
+  }
+  if(S.passes.length===0){toast('NOTHING TO UNDO');return;}
+  S.passes.pop(); updateBadge(); calcArea(); save();
+  toast('LAST PASS REMOVED'); draw();
+});
+document.getElementById('clearBtn').addEventListener('click', function() {
+  if(S.passes.length===0&&S.curPass.length===0){toast('NOTHING TO CLEAR');return;}
+  if(!confirm('Clear all passes?')) return;
+  // Save to worklog before clearing
+  if(S.currentJob&&S.passes.length>0){
+    var job={
+      field:S.currentJob.field,
+      date:fmtTime(Date.now()),
+      passes:S.passes.length,
+      acres:calcArea(),
+      duration:fmtDuration(Date.now()-(S.sessionStart||Date.now()))
+    };
+    S.worklog.unshift(job);
+    renderWorklog();
+  }
+  S.passes=[];S.curPass=[];S.recording=false;
+  document.getElementById('recBtn').textContent='▶ START PASS';
+  document.getElementById('recBtn').classList.remove('rec');
+  document.getElementById('mArea').textContent='0.00';
+  document.getElementById('lightbar').classList.remove('show');
+  S.sessionStart=Date.now();
+  clearSave(); updateBadge(); draw(); save(); toast('CLEARED');
+});
+
+// ═══════════════════════════════════════════════════
+// MODE / ORIENT / FOLLOW
+// ═══════════════════════════════════════════════════
+function setMode(m) {
+  if(S.recording){toast('END CURRENT '+(S.loopMode?'LOOP':'PASS')+' FIRST');return;}
+  S.loopMode=(m==='loop');
+  document.getElementById('modePass').classList.toggle('active',!S.loopMode);
+  document.getElementById('modeLoop').classList.toggle('active', S.loopMode);
+  document.getElementById('recBtn').textContent=S.loopMode?'▶ START LOOP':'▶ START PASS';
+  toast(S.loopMode?'LOOP MODE':'PASS MODE');
+}
+document.getElementById('orientBtn').addEventListener('click', function() {
+  S.courseUp=!S.courseUp;
+  this.textContent=S.courseUp?'↑ COURSE-UP':'↑ NORTH-UP';
+  this.classList.toggle('on', S.courseUp); this.classList.toggle('amber',!S.courseUp);
+  var fb=document.getElementById('followBtn');
+  if(S.courseUp){fb.textContent='📍 LOCKED';fb.classList.add('on');fb.classList.remove('amber');}
+  else{fb.textContent='📍 FOLLOWING';setFollow(true);}
+  toast(S.courseUp?'COURSE-UP':'NORTH-UP');
+  updateTiles(); draw();
+});
+document.getElementById('followBtn').addEventListener('click', function() {
+  if(S.courseUp)return;
+  setFollow(!S.following);
+});
+function setFollow(on) {
+  S.following=on;
+  var fb=document.getElementById('followBtn');
+  fb.textContent=on?'📍 FOLLOWING':'📍 PANNING';
+  fb.classList.toggle('on',on); fb.classList.toggle('amber',!on);
+  if(on&&S.gpsReady){S.camMX=S.curMX;S.camMY=S.curMY;updateTiles();draw();}
+}
+
+// ═══════════════════════════════════════════════════
+// SWATH EDIT
+// ═══════════════════════════════════════════════════
+function openSwathEdit() {
+  document.getElementById('swathEditInput').value=S.swathFt;
+  document.getElementById('swathEdit').classList.add('show');
+  setTimeout(function(){document.getElementById('swathEditInput').focus();},100);
+}
+function closeSwathEdit() {
+  var v = parseFloat(document.getElementById('swathEditInput').value);
+  if (v > 0 && v <= 300) {
+    S.swathFt = v;
+    document.getElementById('swathDisplay').textContent = S.swathFt + ' ft  ✎';
+    document.getElementById('equipWidth').textContent = S.swathFt.toFixed(1);
+    updateSwathColor();
+    toast('SWATH: ' + S.swathFt + ' FT');
+    calcArea(); draw();
+  }
+  document.getElementById('swathEdit').classList.remove('show');
+}
+function nudgeSwath(n) {
+  var cur=parseFloat(document.getElementById('swathEditInput').value)||S.swathFt;
+  document.getElementById('swathEditInput').value=Math.max(1,Math.min(300,cur+n));
+}
+document.getElementById('swathEdit').addEventListener('click', function(e){ if(e.target===this)closeSwathEdit(); });
+
+// ═══════════════════════════════════════════════════
+// EQUIPMENT
+// ═══════════════════════════════════════════════════
+function adjustWidth(n) {
+  S.swathFt=Math.max(1,Math.min(300,S.swathFt+n));
+  document.getElementById('equipWidth').textContent=S.swathFt.toFixed(1);
+  document.getElementById('swathDisplay').textContent=S.swathFt+' ft  ✎';
+  calcArea(); draw();
+}
+function setOffset(v, quiet) {
+  S.offset=v;
+  ['Left','None','Right'].forEach(function(o){
+    document.getElementById('off'+o).classList.toggle('active',o.toLowerCase()===v);
+  });
+  if(!quiet)toast('OFFSET: '+v.toUpperCase());
+}
+
+// ═══════════════════════════════════════════════════
+// FIELDS
+// ═══════════════════════════════════════════════════
+function renderFieldsList() {
+  var list=document.getElementById('fieldsList');
+  list.innerHTML='';
+  if(S.fields.length===0){
+    list.innerHTML='<div style="color:var(--muted);font-size:13px;letter-spacing:1px;text-align:center;margin-top:40px">No fields yet.<br>Tap + to map a field boundary.</div>';
+    return;
+  }
+  S.fields.forEach(function(f,i){
+    var card=document.createElement('div');
+    card.className='fieldCard'+(S.activeFieldIdx===i?' active-field':'');
+    card.innerHTML='<div class="fieldThumb">🌾</div><div class="fieldInfo"><div class="fieldName">'+f.name+'</div><div class="fieldAcres">'+f.acres.toFixed(2)+' acres</div></div><div class="fieldChev">›</div>';
+    card.addEventListener('click',function(){showFieldDetail(i);});
+    list.appendChild(card);
+  });
+}
+
+function showFieldDetail(idx) {
+  S.activeFieldIdx=idx;
+  var f=S.fields[idx];
+  document.getElementById('fieldDetailTitle').textContent=f.name;
+  document.getElementById('fdName').textContent=f.name;
+  document.getElementById('fdArea').textContent=f.acres.toFixed(2)+' acres';
+  document.getElementById('fdPerimeter').textContent=f.perimeter?f.perimeter.toFixed(0)+' ft':'—';
+  document.getElementById('fdLabel').textContent=f.name;
+  drawFieldDetail(f);
+  showScreen('fieldDetailScreen');
+}
+
+function drawFieldDetail(f) {
+  var canvas=document.getElementById('fdCanvas');
+  var wrap=document.getElementById('fieldDetailMap');
+  canvas.width=wrap.clientWidth*(window.devicePixelRatio||1);
+  canvas.height=wrap.clientHeight*(window.devicePixelRatio||1);
+  canvas.style.width=wrap.clientWidth+'px';
+  canvas.style.height=wrap.clientHeight+'px';
+  var c=canvas.getContext('2d');
+  c.clearRect(0,0,canvas.width,canvas.height);
+  c.fillStyle='#1a2a1a'; c.fillRect(0,0,canvas.width,canvas.height);
+  if(!f.worldPts||f.worldPts.length<3) return;
+  var pts=f.worldPts;
+  var minX=pts[0].mx,maxX=pts[0].mx,minY=pts[0].my,maxY=pts[0].my;
+  pts.forEach(function(p){minX=Math.min(minX,p.mx);maxX=Math.max(maxX,p.mx);minY=Math.min(minY,p.my);maxY=Math.max(maxY,p.my);});
+  var W=canvas.width,H=canvas.height;
+  var pad=30*(window.devicePixelRatio||1);
+  var sx2=(W-pad*2)/(maxX-minX||1), sy2=(H-pad*2)/(maxY-minY||1);
+  var sc2=Math.min(sx2,sy2);
+  var cx=(W-(maxX+minX)*sc2)/2, cy=(H+(maxY+minY)*sc2)/2;
+  c.beginPath();
+  pts.forEach(function(p,i){
+    if(i===0)c.moveTo(cx+p.mx*sc2,cy-p.my*sc2);
+    else c.lineTo(cx+p.mx*sc2,cy-p.my*sc2);
+  });
+  c.closePath();
+  c.fillStyle='rgba(57,255,20,0.15)'; c.fill();
+  c.strokeStyle='#39FF14'; c.lineWidth=2*(window.devicePixelRatio||1); c.stroke();
+}
+
+function launchGuidelinesForField() {
+  showScreen('driveScreen');
+  draw();
+  toast('FIELD BOUNDARY ACTIVE ON MAP');
+}
+
+function deleteCurrentField() {
+  if(!confirm('Delete this field?')) return;
+  S.fields.splice(S.activeFieldIdx,1);
+  S.activeFieldIdx=-1;
+  save(); renderFieldsList();
+  showScreen('fieldsScreen');
+}
+
+// ─── FIELD MAPPING ───
+var fieldMapPts=[]; // screen latlon during mapping
+var fmOvCv, fmOvCtx;
+var fieldMapOrigin=null;
+
+function startFieldMapping() {
+  fieldMapPts=[];
+  fieldMapOrigin={lat:S.origin?S.origin.lat:0, lon:S.origin?S.origin.lon:0};
+  document.getElementById('fieldMapOverlay').classList.add('show');
+  document.getElementById('fieldMapAcres').textContent='0.00 acres';
+  var canvas=document.getElementById('fieldMapOvCanvas');
+  canvas.width=window.innerWidth*(window.devicePixelRatio||1);
+  canvas.height=(window.innerHeight-80)*(window.devicePixelRatio||1);
+  canvas.style.width=window.innerWidth+'px';
+  canvas.style.height=(window.innerHeight-80)+'px';
+  fmOvCv=canvas; fmOvCtx=canvas.getContext('2d');
+  canvas.addEventListener('click',addFieldMapPoint);
+  drawFieldMap();
+}
+
+function addFieldMapPoint(e) {
+  var rect=fmOvCv.getBoundingClientRect();
+  var x=(e.clientX-rect.left)*(window.devicePixelRatio||1);
+  var y=(e.clientY-rect.top)*(window.devicePixelRatio||1);
+  fieldMapPts.push({x:x,y:y});
+  drawFieldMap();
+  // Calc area
+  if(fieldMapPts.length>=3) {
+    var area=fieldMapPolyArea();
+    document.getElementById('fieldMapAcres').textContent=area.toFixed(2)+' acres';
+  }
+}
+
+function undoFieldPoint() {
+  fieldMapPts.pop(); drawFieldMap();
+}
+
+function drawFieldMap() {
+  if(!fmOvCtx) return;
+  var W=fmOvCv.width, H=fmOvCv.height, dpr=window.devicePixelRatio||1;
+  fmOvCtx.clearRect(0,0,W,H);
+  fmOvCtx.fillStyle='rgba(0,0,0,0.7)'; fmOvCtx.fillRect(0,0,W,H);
+  // Instructions
+  fmOvCtx.fillStyle='rgba(255,255,255,0.7)';
+  fmOvCtx.font=(11*dpr)+'px monospace';
+  fmOvCtx.textAlign='center'; fmOvCtx.textBaseline='top';
+  fmOvCtx.fillText('TAP TO ADD BOUNDARY POINTS',W/2,14*dpr);
+  if(fieldMapPts.length<2){fmOvCtx.fillText('TAP AROUND THE FIELD EDGE',W/2,28*dpr);}
+  if(fieldMapPts.length<1) return;
+  fmOvCtx.beginPath();
+  fmOvCtx.moveTo(fieldMapPts[0].x,fieldMapPts[0].y);
+  fieldMapPts.forEach(function(p){fmOvCtx.lineTo(p.x,p.y);});
+  if(fieldMapPts.length>=3){
+    fmOvCtx.closePath();
+    fmOvCtx.fillStyle='rgba(57,255,20,0.15)'; fmOvCtx.fill();
+  }
+  fmOvCtx.strokeStyle='#39FF14'; fmOvCtx.lineWidth=2.5*dpr;
+  fmOvCtx.setLineDash([8*dpr,4*dpr]); fmOvCtx.stroke(); fmOvCtx.setLineDash([]);
+  fieldMapPts.forEach(function(p,i){
+    fmOvCtx.beginPath(); fmOvCtx.arc(p.x,p.y,7*dpr,0,Math.PI*2);
+    fmOvCtx.fillStyle='#39FF14'; fmOvCtx.fill();
+    if(i===0){fmOvCtx.strokeStyle='#fff';fmOvCtx.lineWidth=2*dpr;fmOvCtx.stroke();}
+  });
+}
+
+function fieldMapPolyArea() {
+  // Shoelace formula on screen pixels, then convert to acres
+  var pts=fieldMapPts, n=pts.length, area=0;
+  for(var i=0;i<n;i++){
+    var j=(i+1)%n;
+    area+=pts[i].x*pts[j].y; area-=pts[j].x*pts[i].y;
+  }
+  area=Math.abs(area)/2;
+  // pixels² → meters² : need scale. Use S.scale (meters/pixel)
+  var dpr=window.devicePixelRatio||1;
+  var sqM=area/(dpr*dpr*S.scale*S.scale);
+  return S.units==='acres'?sqM/4046.86:sqM/10000;
+}
+
+function fieldMapPerimeter() {
+  var pts=fieldMapPts,n=pts.length,perim=0,dpr=window.devicePixelRatio||1;
+  for(var i=0;i<n;i++){
+    var j=(i+1)%n;
+    var dx=pts[j].x-pts[i].x,dy=pts[j].y-pts[i].y;
+    perim+=Math.sqrt(dx*dx+dy*dy)/(dpr*S.scale);
+  }
+  return perim/0.3048; // meters to feet
+}
+
+function finishFieldMapping() {
+  if(fieldMapPts.length<3){toast('ADD AT LEAST 3 POINTS');return;}
+  var name=prompt('Field name:','Field '+(S.fields.length+1));
+  if(!name)name='Field '+(S.fields.length+1);
+  // Convert screen points to world coords
+  var W=fmOvCv.width,H=fmOvCv.height,dpr=window.devicePixelRatio||1;
+  var worldPts=fieldMapPts.map(function(p){
+    var dx=(p.x-W/2)/(S.scale*dpr);
+    var dy=-(p.y-H*0.5)/(S.scale*dpr);
+    return{mx:S.curMX+dx,my:S.curMY+dy};
+  });
+  var f={
+    name:name,
+    worldPts:worldPts,
+    acres:fieldMapPolyArea(),
+    perimeter:fieldMapPerimeter()
+  };
+  S.fields.push(f);
+  S.activeFieldIdx=S.fields.length-1;
+  document.getElementById('fieldMapOverlay').classList.remove('show');
+  save(); renderFieldsList();
+  showScreen('fieldsScreen');
+  toast('FIELD SAVED: '+name);
+}
+
+// ═══════════════════════════════════════════════════
+// WORKLOG
+// ═══════════════════════════════════════════════════
+function renderWorklog() {
+  var list=document.getElementById('worklogList');
+  list.innerHTML='';
+  // Current in-progress job
+  if(S.currentJob&&S.passes.length>0){
+    var card=document.createElement('div');
+    card.className='jobCard currentJobCard';
+    card.innerHTML='<div class="jc-top"><div class="jc-field">'+S.currentJob.field+'</div><span class="inProgressBadge">In Progress</span></div><div class="jc-stats"><div class="jc-stat"><div class="jc-stat-val">'+calcArea().toFixed(2)+'</div><div class="jc-stat-lbl">'+(S.units==='acres'?'ACRES':'HECT')+'</div></div><div class="jc-stat"><div class="jc-stat-val">'+S.passes.length+'</div><div class="jc-stat-lbl">PASSES</div></div><div class="jc-stat"><div class="jc-stat-val">'+fmtDuration(Date.now()-(S.sessionStart||Date.now()))+'</div><div class="jc-stat-lbl">TIME</div></div></div><button class="finishJobBtn" onclick="finishCurrentJob()">⏹ FINISH JOB</button>';
+    list.appendChild(card);
+  }
+  if(S.worklog.length===0&&(!S.currentJob||S.passes.length===0)){
+    list.innerHTML='<div style="color:var(--muted);font-size:13px;letter-spacing:1px;text-align:center;margin-top:40px">No jobs logged yet.<br>Start a pass to begin tracking.</div>';
+    return;
+  }
+  S.worklog.forEach(function(job){
+    var card=document.createElement('div');
+    card.className='jobCard';
+    card.innerHTML='<div class="jc-top"><div class="jc-field">'+job.field+'</div><div class="jc-date">'+job.date+'</div></div><div class="jc-stats"><div class="jc-stat"><div class="jc-stat-val">'+job.acres.toFixed(2)+'</div><div class="jc-stat-lbl">ACRES</div></div><div class="jc-stat"><div class="jc-stat-val">'+job.passes+'</div><div class="jc-stat-lbl">PASSES</div></div><div class="jc-stat"><div class="jc-stat-val">'+job.duration+'</div><div class="jc-stat-lbl">TIME</div></div></div>';
+    list.appendChild(card);
+  });
+}
+
+function finishCurrentJob() {
+  if(!S.currentJob||S.passes.length===0){toast('NO ACTIVE JOB');return;}
+  var job={
+    field:S.currentJob.field, date:fmtTime(Date.now()),
+    passes:S.passes.length, acres:parseFloat(calcArea().toFixed(2)),
+    duration:fmtDuration(Date.now()-(S.sessionStart||Date.now()))
+  };
+  S.worklog.unshift(job);
+  S.passes=[];S.curPass=[];S.recording=false;
+  document.getElementById('recBtn').textContent='▶ START PASS';
+  document.getElementById('recBtn').classList.remove('rec');
+  document.getElementById('mArea').textContent='0.00';
+  updateBadge(); S.sessionStart=Date.now();
+  clearSave(); save(); renderWorklog(); draw();
+  toast('JOB SAVED TO WORK LOG');
+}
+
+// ═══════════════════════════════════════════════════
+// UTIL
+// ═══════════════════════════════════════════════════
+function toast(msg) {
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t);
+  t._t=setTimeout(function(){t.classList.remove('show');},2500);
+}
+async function doWakeLock() {
+  if('wakeLock'in navigator){try{await navigator.wakeLock.request('screen');}catch(e){}}
+}
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')doWakeLock();});
+function initOrientation() {
+  var req=typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function';
+  if(req){DeviceOrientationEvent.requestPermission().then(function(p){if(p==='granted')window.addEventListener('deviceorientation',onOrient);}).catch(function(){});}
+  else{window.addEventListener('deviceorientation',onOrient);}
+}
+function onOrient(e) {
+  var h=e.webkitCompassHeading!=null?e.webkitCompassHeading:(e.alpha!=null?(360-e.alpha)%360:null);
+  if(h!=null&&S.heading===null){S.heading=h;document.getElementById('mHead').textContent=Math.round(h);draw();}
+}
+
+// ── SPLASH ──
+setTimeout(function() {
+  var splash = document.getElementById('splash');
+  if (splash) { splash.classList.add('hide'); setTimeout(function(){ splash.remove(); }, 700); }
+}, 1800);
+</script>
+
+</body>
+</html>
