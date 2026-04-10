@@ -9,14 +9,14 @@
   "theme_color": "#080d08",
   "icons": [
     {
-      "src": "sprayTrackIcon1024x1024.png",
-      "sizes": "1024x1024",
+      "src": "apple-icon.png",
+      "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "sprayTrackIcon1024x1024.png",
-      "sizes": "1024x1024",
+      "src": "apple-icon.png",
+      "sizes": "180x180",
       "type": "image/png",
       "purpose": "maskable"
     }

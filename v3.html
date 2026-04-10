@@ -8,8 +8,14 @@
 <meta name="apple-mobile-web-app-title" content="Spray Track">
 <title>Spray Track</title>
 <link rel="manifest" href="site.webmanifest">
-<link rel="apple-touch-icon" href="sprayTrackIcon1024x1024.png">
+<link rel="apple-touch-icon" href="apple-icon.png">
 <link rel="icon" type="image/png" href="icon.png">
+
+<!-- Splash screens for common iPhone sizes -->
+<link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="icon.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="icon.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="icon.png">
+<link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" href="icon.png">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 :root {
@@ -620,17 +626,17 @@ var S = {
   gpsReady: false, heading: null,
   origin: null, curMX: 0, curMY: 0,
   camMX: 0, camMY: 0,
-  scale: 5,
-  abLine: null,      // {ax,ay,bx,by} in world coords — null = not set
-  abStep: 0,         // 0=off 1=waiting for A 2=waiting for B
-  fields: [],        // [{name, pts:[{lat,lon}], acres}]
+  scale: 2,
+  abLine: null,
+  abStep: 0,
+  fields: [],
   activeFieldIdx: -1,
-  worklog: [],       // [{field,passes,acres,time,date}]
+  worklog: [],
   sessionStart: null,
   currentJob: null,
   watchId: null,
-  mapTiles: [],      // currently loaded tile elements
-  tileZoom: 17
+  mapTiles: [],
+  tileZoom: 18
 };
 var cv, ctx, lt=null, pd=null;
 
@@ -753,62 +759,67 @@ function tileToLatLon(tx, ty, zoom) {
 function updateTiles() {
   if (!S.origin || !cv) return;
   var tileLayer = document.getElementById('tileLayer');
-  var W = cv.width / (window.devicePixelRatio||1);
-  var H = cv.height / (window.devicePixelRatio||1);
-  var zoom = S.tileZoom;
-  var TSIZE = 256;
-
-  // Center tile
-  var ct = latLonToTile(S.origin.lat + myToLat(S.curMY - S.camMY),
-                         S.origin.lon + mxToLon(S.curMX - S.camMX), zoom);
-
-  // How many tiles needed
-  var tilesX = Math.ceil(W / TSIZE) + 2;
-  var tilesY = Math.ceil(H / TSIZE) + 2;
-
-  // Remove old tiles
   tileLayer.innerHTML = '';
 
-  // Tile origin on screen: the center tile maps to screen center
-  // Calculate pixel offset of tile origin
-  var centerLatLon = { lat: S.origin.lat + myToLat((S.courseUp||S.following)?0:S.camMY - S.curMY),
-                        lon: S.origin.lon + mxToLon((S.courseUp||S.following)?0:S.camMX - S.curMX) };
-  if (S.courseUp || S.following) {
-    centerLatLon.lat = S.origin.lat + myToLat(0);
-    centerLatLon.lon = S.origin.lon + mxToLon(0);
-  }
+  // Pick zoom level based on current scale
+  var zoom = S.tileZoom;
 
-  // For simplicity: use curMX/curMY as the center lat/lon
-  var centerLat = S.origin.lat + myToLat(S.curMY);
-  var centerLon = S.origin.lon + mxToLon(S.curMX);
-  var centerTile = latLonToTile(centerLat, centerLon, zoom);
+  // Meters per tile pixel at this zoom and latitude
+  var mpp = getTileMetersPerPixel(S.origin.lat, zoom); // meters per tile pixel
 
-  // Pixel position of the center tile's top-left corner relative to screen center
-  var tileTopLeft = tileToLatLon(centerTile.x, centerTile.y, zoom);
-  // Convert tile top-left to world coords
-  var tileMX = mxFromLonAbs(tileTopLeft.lon);
-  var tileMY = myFromLatAbs(tileTopLeft.lat);
+  // On screen: S.scale = pixels per meter (our world scale)
+  // So one tile pixel = S.scale * mpp screen pixels
+  // One full tile (256px) = 256 * S.scale * mpp screen pixels
+  var tileSizePx = 256 * S.scale * mpp; // screen pixels per tile
 
-  var dotX = W / 2, dotY = H * 0.68;
-  var sc = S.scale;
+  // Current position in tile coordinates (fractional)
+  var curTile = latLonToTile(
+    S.origin.lat + myToLat(S.curMY),
+    S.origin.lon + mxToLon(S.curMX),
+    zoom
+  );
 
-  for (var tx = centerTile.x - Math.ceil(tilesX/2); tx <= centerTile.x + Math.ceil(tilesX/2); tx++) {
-    for (var ty = centerTile.y - Math.ceil(tilesY/2); ty <= centerTile.y + Math.ceil(tilesY/2); ty++) {
-      var tl = tileToLatLon(tx, ty, zoom);
-      var tlMX = mxFromLonAbs(tl.lon);
-      var tlMY = myFromLatAbs(tl.lat);
-      // Screen position of this tile's top-left
-      var screenX = dotX + (tlMX - S.curMX) * sc;
-      var screenY = dotY - (tlMY - S.curMY) * sc;
+  // The fractional offset within the current tile
+  var fracX = curTile.x - Math.floor(curTile.x);  // not used but helpful conceptually
+  // Actually latLonToTile returns integer tiles, so compute fractional manually
+  var n = Math.pow(2, zoom);
+  var curLat = S.origin.lat + myToLat(S.curMY);
+  var curLon = S.origin.lon + mxToLon(S.curMX);
+  var fracTileX = (curLon + 180) / 360 * n;
+  var latR = curLat * Math.PI / 180;
+  var fracTileY = (1 - Math.log(Math.tan(latR) + 1/Math.cos(latR)) / Math.PI) / 2 * n;
 
+  // Screen anchor: tractor dot position
+  var W = cv.width / (window.devicePixelRatio || 1);
+  var H = cv.height / (window.devicePixelRatio || 1);
+  var dotX = W / 2;
+  var dotY = S.courseUp ? H * 0.68 : H / 2;
+
+  // How many tiles to draw in each direction
+  var tilesX = Math.ceil(W / tileSizePx) + 2;
+  var tilesY = Math.ceil(H / tileSizePx) + 2;
+
+  var centerTileX = Math.floor(fracTileX);
+  var centerTileY = Math.floor(fracTileY);
+
+  // Pixel offset of center tile's top-left from the dot
+  var offsetX = dotX - (fracTileX - centerTileX) * tileSizePx;
+  var offsetY = dotY - (fracTileY - centerTileY) * tileSizePx;
+
+  for (var tx = centerTileX - tilesX; tx <= centerTileX + tilesX; tx++) {
+    for (var ty = centerTileY - tilesY; ty <= centerTileY + tilesY; ty++) {
       var img = document.createElement('img');
-      // ESRI World Imagery (free, no key required)
-      img.src = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/'+zoom+'/'+ty+'/'+tx;
+      img.src = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/'
+                + zoom + '/' + ty + '/' + tx;
+      var screenX = offsetX + (tx - centerTileX) * tileSizePx;
+      var screenY = offsetY + (ty - centerTileY) * tileSizePx;
       img.style.left   = screenX + 'px';
       img.style.top    = screenY + 'px';
-      img.style.width  = TSIZE * sc / getTileMetersPerPixel(tl.lat, zoom) + 'px';
-      img.style.height = TSIZE * sc / getTileMetersPerPixel(tl.lat, zoom) + 'px';
+      img.style.width  = tileSizePx + 'px';
+      img.style.height = tileSizePx + 'px';
+      img.style.position = 'absolute';
       img.draggable = false;
+      img.loading = 'lazy';
       tileLayer.appendChild(img);
     }
   }
@@ -872,21 +883,25 @@ function onTM(e) {
     lt={x:e.touches[0].clientX,y:e.touches[0].clientY};
     setFollow(false); draw();
   } else if (e.touches.length===2 && pd) {
-    var d=tdist(e.touches);
-    var newScale = Math.max(1, Math.min(40, S.scale*d/pd));
-    S.scale=newScale;
+    var d = tdist(e.touches);
+    var newScale = Math.max(0.5, Math.min(40, S.scale * d / pd));
+    S.scale = newScale;
     S.tileZoom = scaleToZoom(S.scale);
-    pd=d; updateTiles(); draw();
+    pd = d; updateTiles(); draw();
   }
 }
 function tdist(t){var dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
 function scaleToZoom(sc) {
-  // Rough mapping of pixels/meter to tile zoom
-  if (sc > 20) return 19;
-  if (sc > 10) return 18;
-  if (sc > 5)  return 17;
-  if (sc > 2)  return 16;
-  return 15;
+  // S.scale is pixels per meter. Pick tile zoom so tiles are sharp not blurry.
+  // At zoom Z, one tile pixel = mpp meters. We want tileSizePx = 256*sc*mpp ≈ 200-400px
+  // mpp at zoom Z ≈ 156543 * cos(lat) / 2^Z  (at equator cos=1)
+  // tileSizePx = 256 * sc * mpp
+  // We want tileSizePx between ~200-600px for sharpness
+  // So pick Z such that 256 * sc * 156543/2^Z ≈ 300
+  // 2^Z ≈ 256 * sc * 156543 / 300
+  var target = 256 * sc * 156543 / 300;
+  var z = Math.round(Math.log2(target));
+  return Math.max(14, Math.min(20, z));
 }
 
 // Map click — used for AB line setting
