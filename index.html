@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -6,192 +7,88 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Spray Track">
+<meta name="color-scheme" content="dark">
 <title>Spray Track</title>
-<link rel="manifest" href="site.webmanifest">
-<link rel="apple-touch-icon" href="apple-icon.png">
+<link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
-:root {
-  --green: #39FF14;
-  --amber: #FFB800;
-  --bg: #0a0f0a;
-  --panel: #111811;
-  --border: #1e2e1e;
-  --text: #c8e6c8;
-  --muted: #4a6a4a;
-}
-
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html { background:#000 !important; }
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Courier New', monospace;
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 24px;
-  gap: 0;
-  background-image:
-    linear-gradient(rgba(57,255,20,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(57,255,20,0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
+  background:#000 !important; color:#fff;
+  font-family:'Courier New',monospace;
+  min-height:100vh; min-height:100dvh;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:32px 24px; gap:0;
+  color-scheme:dark;
 }
-
 .logo {
-  font-size: 56px;
-  font-weight: 900;
-  color: var(--green);
-  line-height: 1;
-  text-align: center;
-  letter-spacing: -1px;
-  font-family: system-ui, -apple-system, sans-serif;
-  margin-bottom: 6px;
+  font-size:52px; font-weight:900; color:#fff;
+  line-height:1; text-align:center; letter-spacing:-1px;
+  font-family:system-ui,sans-serif; margin-bottom:6px;
 }
-
-.sub {
-  font-size: 11px;
-  letter-spacing: 4px;
-  color: var(--muted);
-  margin-bottom: 48px;
-  text-align: center;
-}
-
-.label {
-  font-size: 10px;
-  letter-spacing: 3px;
-  color: var(--muted);
-  font-weight: 700;
-  margin-bottom: 14px;
-  text-align: center;
-}
-
-.versions {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-  max-width: 320px;
-}
-
+.sub { font-size:11px; letter-spacing:4px; color:#555; margin-bottom:36px; text-align:center; }
+.label { font-size:10px; letter-spacing:3px; color:#555; font-weight:700; margin-bottom:14px; text-align:center; }
+.versions { display:flex; flex-direction:column; gap:12px; width:100%; max-width:320px; }
 .ver-btn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--panel);
-  border: 2px solid var(--border);
-  border-radius: 8px;
-  padding: 18px 20px;
-  text-decoration: none;
-  color: var(--text);
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-  -webkit-tap-highlight-color: transparent;
+  display:flex; align-items:center; justify-content:space-between;
+  background:#111 !important; border:2px solid #333; border-radius:8px;
+  padding:18px 20px; text-decoration:none; color:#fff !important;
+  -webkit-appearance:none;
 }
-.ver-btn:active {
-  background: rgba(57,255,20,0.06);
-  border-color: var(--green);
-}
-
-.ver-btn.latest {
-  border-color: var(--green);
-}
-
-.ver-left { text-align: left; }
-
-.ver-tag {
-  font-size: 11px;
-  letter-spacing: 2px;
-  color: var(--muted);
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-.ver-btn.latest .ver-tag { color: var(--green); }
-
-.ver-name {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: var(--text);
-}
-
-.ver-desc {
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 3px;
-  letter-spacing: 0.5px;
-}
-
-.ver-arrow {
-  font-size: 20px;
-  color: var(--muted);
-}
-.ver-btn.latest .ver-arrow { color: var(--green); }
-
+.ver-btn:active { background:#1a1a1a !important; }
+.ver-btn.latest { border-color:#FFE600; }
+.ver-left { text-align:left; }
+.ver-tag { font-size:11px; letter-spacing:2px; color:#555; font-weight:700; margin-bottom:4px; }
+.ver-btn.latest .ver-tag { color:#FFE600; }
+.ver-name { font-size:18px; font-weight:700; color:#fff; letter-spacing:1px; }
+.ver-desc { font-size:11px; color:#555; margin-top:3px; }
+.ver-arrow { font-size:20px; color:#444; }
+.ver-btn.latest .ver-arrow { color:#FFE600; }
 .badge {
-  display: inline-block;
-  background: var(--green);
-  color: #000;
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 2px;
-  padding: 2px 7px;
-  border-radius: 3px;
-  margin-left: 8px;
-  vertical-align: middle;
+  display:inline-block; background:#FFE600; color:#000;
+  font-size:9px; font-weight:900; letter-spacing:2px;
+  padding:2px 7px; border-radius:3px; margin-left:8px; vertical-align:middle;
 }
-
-.footer {
-  margin-top: 40px;
-  font-size: 10px;
-  color: var(--muted);
-  letter-spacing: 2px;
-  text-align: center;
+.footer { margin-top:36px; font-size:10px; color:#444; letter-spacing:2px; text-align:center; }
+img.appicon {
+  width:90px; height:90px; border-radius:20px; margin-bottom:12px;
+  display:block;
 }
 </style>
 </head>
 <body>
-
+<img class="appicon" src="icon.png" alt="Spray Track Icon">
 <div class="logo">SPRAY<br>TRACK</div>
 <div class="sub">FIELD GUIDANCE SYSTEM</div>
-
 <div class="label">SELECT VERSION</div>
-
 <div class="versions">
-
-
   <a class="ver-btn latest" href="v3.html">
     <div class="ver-left">
       <div class="ver-tag">VERSION 3 <span class="badge">LATEST</span></div>
-      <div class="ver-name">In Development</div>
-      <div class="ver-desc">New features being tested</div>
+      <div class="ver-name">Satellite Map</div>
+      <div class="ver-desc">Fields, AB line, work log, compass</div>
     </div>
     <div class="ver-arrow">→</div>
   </a>
-
-  <a class="ver-btn latest" href="v2.html">
+  <a class="ver-btn" href="v2.html">
     <div class="ver-left">
-      <div class="ver-tag">VERSION 2 </div>
-      <div class="ver-name">Before background tracking</div>
-      <div class="ver-desc">New features being tested</div>
+      <div class="ver-tag">VERSION 2</div>
+      <div class="ver-name">Stable</div>
+      <div class="ver-desc">Pass + loop, ghost line, lightbar</div>
     </div>
     <div class="ver-arrow">→</div>
   </a>
-
   <a class="ver-btn" href="v1.html">
     <div class="ver-left">
       <div class="ver-tag">VERSION 1</div>
-      <div class="ver-name">Stable</div>
-      <div class="ver-desc">Pass + loop tracking, lightbar guidance</div>
+      <div class="ver-name">Original</div>
+      <div class="ver-desc">Basic pass tracking</div>
     </div>
     <div class="ver-arrow">→</div>
   </a>
-
 </div>
-
-<div class="footer">RENEE'S FARM TOOLS &nbsp;·&nbsp; FREE &amp; OPEN SOURCE</div>
-
+<div class="footer">FREE &amp; OPEN SOURCE</div>
 </body>
 </html>
