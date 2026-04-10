@@ -616,31 +616,23 @@ function draw() {
 
   ctx.clearRect(0, 0, W, H);
 
-  // In course-up mode: rotate canvas so heading points up,
-  // and pin the tractor dot to lower-center of screen.
-  var dotX, dotY, rotRad = 0;
-  if (courseUp && heading !== null) {
-    rotRad = -heading * Math.PI / 180;   // rotate so heading = up
-    dotX = W / 2;
-    dotY = H * 0.72;   // tractor sits in lower third, like a car GPS
-  } else {
-    dotX = W / 2;
-    dotY = H / 2;
-  }
+  // In course-up mode: tractor dot is pinned to lower-center.
+  // Camera is always locked to tractor position (camMX/camMY = curMX/curMY).
+  // The whole canvas rotates around the dot so heading points up.
+  // In north-up mode: dot is screen center, camera pans freely.
+  var dotX = W / 2;
+  var dotY = courseUp ? H * 0.65 : H / 2;
 
-  // Camera offset so tractor dot stays at dotX/dotY
-  function wx(mx) {
-    var rx =  (mx - camMX) * sc;
-    var ry = -(curMY - camMY) * sc;  // not used here, handled below
-    return dotX + (mx - camMX) * sc;
-  }
-  function wy(my) {
-    return dotY - (my - camMY) * sc;
-  }
+  // In course-up, always lock camera to current position
+  var refMX = (courseUp || following) ? curMX : camMX;
+  var refMY = (courseUp || following) ? curMY : camMY;
+
+  function wx(mx) { return dotX + (mx - refMX) * sc; }
+  function wy(my) { return dotY - (my - refMY) * sc; }
 
   ctx.save();
   if (courseUp && heading !== null) {
-    // Rotate around the tractor dot position
+    var rotRad = -heading * Math.PI / 180;
     ctx.translate(dotX, dotY);
     ctx.rotate(rotRad);
     ctx.translate(-dotX, -dotY);
@@ -985,10 +977,15 @@ document.getElementById('orientBtn').addEventListener('click', function() {
   if (courseUp) {
     this.textContent = '\u2191 COURSE-UP';
     this.classList.remove('north');
-    toast('COURSE-UP: TRAVEL DIRECTION = UP');
+    document.getElementById('followBtn').textContent = '\ud83d\udccd COURSE-UP';
+    document.getElementById('followBtn').classList.remove('off');
+    toast('COURSE-UP ON \u2014 TRAVEL DIRECTION = UP');
   } else {
     this.textContent = '\u2191 NORTH-UP';
     this.classList.add('north');
+    following = true;
+    document.getElementById('followBtn').textContent = '\ud83d\udccd FOLLOWING';
+    document.getElementById('followBtn').classList.remove('off');
     toast('NORTH-UP MODE');
   }
   draw();
@@ -1002,9 +999,9 @@ document.getElementById('followBtn').addEventListener('click', function() {
 function setFollow(on) {
   following = on;
   var btn = document.getElementById('followBtn');
-  if (on) {
+  if (on || courseUp) {
     btn.classList.remove('off');
-    btn.textContent = '\ud83d\udccd FOLLOWING';
+    btn.textContent = courseUp ? '\ud83d\udccd COURSE-UP' : '\ud83d\udccd FOLLOWING';
     if (gpsReady) { camMX = curMX; camMY = curMY; draw(); }
   } else {
     btn.classList.add('off');
