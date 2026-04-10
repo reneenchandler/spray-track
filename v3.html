@@ -108,7 +108,7 @@ body {
 .sf input, .sf select {
   width:100%; background:var(--panel); border:2px solid var(--border); border-radius:6px;
   color:var(--text); font-size:22px; padding:13px 14px; outline:none;
-  -webkit-appearance:none; font-family:'Courier New',monospace;
+  -webkit-appearance:none; appearance:none; font-family:'Courier New',monospace;
 }
 .sf input:focus, .sf select:focus { border-color:var(--green); }
 .sf select option { background:#0f150f; }
@@ -171,6 +171,28 @@ body {
 #followBtn  { top:50px; left:12px; }
 #abBtn      { top:88px; left:12px; }
 #baseBtn    { top:50px; right:12px; left:auto; max-width:110px; text-align:center; padding:7px 8px; }
+#compassHud {
+  position:absolute; right:12px; top:88px; z-index:10;
+  width:66px; height:66px; border-radius:50%;
+  background:rgba(8,13,8,0.48);
+  border:1px solid rgba(140,190,140,0.28);
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  pointer-events:none;
+}
+#compassArrow {
+  position:absolute; left:50%; top:50%;
+  transform:translate(-50%,-50%) rotate(0deg);
+  transform-origin:50% 50%;
+  color:#ff4c4c; font-size:20px; line-height:1;
+  text-shadow:0 0 8px rgba(255,76,76,0.35);
+}
+#compassDeg {
+  position:absolute; left:50%; bottom:-16px; transform:translateX(-50%);
+  min-width:48px; text-align:center; font-size:11px; font-weight:700;
+  color:#fff; letter-spacing:0.5px;
+  background:rgba(8,13,8,0.55); border:1px solid rgba(140,190,140,0.2);
+  border-radius:12px; padding:1px 6px;
+}
 #mapAttrib {
   position:absolute; bottom:3px; left:6px; z-index:9;
   font-size:8px; color:rgba(140,170,140,0.45); pointer-events:none; letter-spacing:0.3px;
@@ -206,28 +228,28 @@ body {
 
 /* ── METRICS (drive screen bottom) ── */
 #driveMetrics {
-  display:grid; grid-template-columns:1fr 1fr 1fr;
-  background:linear-gradient(180deg, rgba(8,13,8,0.55) 0%, rgba(8,13,8,0.74) 100%);
+  display:grid; grid-template-columns:1fr 1fr;
+  background:linear-gradient(180deg, rgba(8,13,8,0.36) 0%, rgba(8,13,8,0.58) 100%);
   border-top:1px solid rgba(140,190,140,0.18);
   backdrop-filter:blur(8px);
   -webkit-backdrop-filter:blur(8px);
   flex-shrink:0;
 }
-.metric { padding:9px 6px; text-align:center; border-right:1px solid rgba(140,190,140,0.14); }
+.metric { padding:6px 6px; text-align:center; border-right:1px solid rgba(140,190,140,0.14); }
 .metric:last-child { border-right:none; }
 .mlabel { font-size:9px; font-weight:700; letter-spacing:2px; color:var(--muted); margin-bottom:1px; }
-.mval   { font-size:24px; color:var(--green); line-height:1; }
+.mval   { font-size:21px; color:var(--green); line-height:1; }
 .munit  { font-size:9px; color:var(--muted); letter-spacing:1px; }
 
 /* ── SWATH / MODE / CONTROLS ── */
 #swathBar {
-  background:rgba(8,13,8,0.62); border-top:1px solid rgba(140,190,140,0.14);
+  background:rgba(8,13,8,0.42); border-top:1px solid rgba(140,190,140,0.14);
   backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-  padding:7px 16px; display:flex; align-items:center; gap:10px;
+  padding:5px 12px; display:flex; align-items:center; gap:8px;
   flex-shrink:0; cursor:pointer;
 }
-#swathBar span { font-size:10px; font-weight:700; letter-spacing:3px; color:var(--muted); }
-#swathDisplay { flex:1; font-size:15px; color:var(--green); text-align:right; }
+#swathBar span { font-size:9px; font-weight:700; letter-spacing:2px; color:var(--muted); }
+#swathDisplay { flex:1; font-size:13px; color:var(--green); text-align:right; }
 #swathEdit {
   display:none; position:fixed; inset:0; z-index:200;
   background:rgba(0,0,0,0.85); align-items:center; justify-content:center;
@@ -256,35 +278,35 @@ body {
   padding:13px; cursor:pointer; font-family:'Courier New',monospace;
 }
 #modeRow {
-  background:rgba(8,13,8,0.62); border-top:1px solid rgba(140,190,140,0.14);
+  background:rgba(8,13,8,0.42); border-top:1px solid rgba(140,190,140,0.14);
   backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
   display:flex; flex-shrink:0;
 }
 .modeBtn {
   flex:1; background:transparent; border:none; border-right:1px solid rgba(140,190,140,0.14);
   color:var(--muted); font-family:'Courier New',monospace;
-  font-size:11px; font-weight:bold; letter-spacing:1px;
-  padding:10px 8px; cursor:pointer; text-transform:uppercase;
+  font-size:10px; font-weight:bold; letter-spacing:1px;
+  padding:8px 8px; cursor:pointer; text-transform:uppercase;
 }
 .modeBtn:last-child { border-right:none; }
 .modeBtn.active { color:var(--green); background:rgba(57,255,20,0.06); }
 #controls {
-  background:linear-gradient(180deg, rgba(8,13,8,0.58) 0%, rgba(8,13,8,0.8) 100%);
+  background:linear-gradient(180deg, rgba(8,13,8,0.45) 0%, rgba(8,13,8,0.66) 100%);
   border-top:1px solid rgba(140,190,140,0.2);
   backdrop-filter:blur(10px);
   -webkit-backdrop-filter:blur(10px);
-  padding:10px 12px 20px; display:flex; gap:10px; flex-shrink:0;
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom)); display:flex; gap:8px; flex-shrink:0;
 }
 .btn {
   flex:1; border:1px solid rgba(140,190,140,0.25); border-radius:12px;
-  background:rgba(8,13,8,0.34); color:var(--text); font-size:13px; font-weight:700;
-  letter-spacing:1px; padding:15px 8px; text-transform:uppercase; cursor:pointer;
+  background:rgba(8,13,8,0.25); color:var(--text); font-size:12px; font-weight:700;
+  letter-spacing:1px; padding:11px 6px; text-transform:uppercase; cursor:pointer;
   font-family:'Courier New',monospace;
 }
 .btn:active { opacity:0.7; }
 .btn-go {
   flex:2; background:linear-gradient(180deg, #49ff26 0%, #2eea0a 100%);
-  border-color:#4fff2d; color:#041004; font-size:16px;
+  border-color:#4fff2d; color:#041004; font-size:15px;
   box-shadow:0 6px 16px rgba(57,255,20,0.3);
 }
 .btn-go.rec { background:var(--red); border-color:var(--red); color:#fff; animation:recpulse 1.5s infinite; }
@@ -377,7 +399,6 @@ body {
 .jobCard .jc-field { font-size:16px; font-weight:700; color:var(--text); }
 .jobCard .jc-date  { font-size:11px; color:var(--muted); }
 .jobCard .jc-stats { display:flex; gap:20px; }
-.jobCard .jc-stat  { }
 .jobCard .jc-stat-val { font-size:18px; color:var(--green); font-family:'Courier New',monospace; }
 .jobCard .jc-stat-lbl { font-size:10px; color:var(--muted); letter-spacing:1px; }
 .currentJobCard {
@@ -504,6 +525,10 @@ body {
     <button class="map-btn on"  id="followBtn">📍 LOCKED</button>
     <button class="map-btn"     id="abBtn">AB LINE</button>
     <button class="map-btn on"  id="baseBtn" type="button" onclick="cycleBasemap()">GRAY MAP</button>
+    <div id="compassHud">
+      <div id="compassArrow">▲</div>
+      <div id="compassDeg">--°</div>
+    </div>
     <div id="lightbar">
       <div id="lbDots"></div>
       <div id="lbText">WAITING</div>
@@ -512,7 +537,6 @@ body {
   <div id="driveMetrics">
     <div class="metric"><div class="mlabel">SPEED</div><div class="mval" id="mSpeed">0.0</div><div class="munit">MPH</div></div>
     <div class="metric"><div class="mlabel">COVERED</div><div class="mval" id="mArea">0.00</div><div class="munit" id="mUnit">ACRES</div></div>
-    <div class="metric"><div class="mlabel">HEADING</div><div class="mval" id="mHead">---</div><div class="munit">DEG</div></div>
   </div>
   <div id="swathBar" onclick="openSwathEdit()">
     <span>SWATH</span>
@@ -734,6 +758,7 @@ function applySettings() {
   document.getElementById('equipWidth').textContent = S.swathFt.toFixed(1);
   setOffset(S.offset, true);
   syncBasemapUi();
+  setHeadingDisplays(S.heading);
 }
 function fmtTime(ts) {
   if(!ts)return'';
@@ -812,6 +837,18 @@ function cycleBasemap() {
   syncBasemapUi();
   updateTiles();
   if (S.origin) save();
+}
+function setHeadingDisplays(h) {
+  var deg = h==null ? '--' : String(Math.round(h));
+  var m = document.getElementById('mHead');
+  if (m) m.textContent = deg;
+  var d = document.getElementById('compassDeg');
+  if (d) d.textContent = deg + '°';
+  var a = document.getElementById('compassArrow');
+  if (a) {
+    var rot = h==null ? 0 : -h;
+    a.style.transform = 'translate(-50%,-50%) rotate(' + rot + 'deg)';
+  }
 }
 
 function latLonToTile(lat, lon, zoom) {
@@ -1059,7 +1096,7 @@ function onPos(p) {
       if(diff>180)diff-=360; if(diff<-180)diff+=360;
       S.heading=(S.heading+diff*0.25+360)%360;
     }
-    document.getElementById('mHead').textContent=Math.round(S.heading);
+    setHeadingDisplays(S.heading);
   }
   if (S.recording&&spd!=null&&spd>0.22) {
     var ok=true;
@@ -1170,7 +1207,7 @@ function draw() {
   }
 
   // North indicator
-  if (S.courseUp&&S.heading!==null) drawNorth(W,H,dpr);
+  // Compass is now rendered as a fixed HUD element on top-right.
   // Scale bar
   drawScaleBar(W,H,dpr,sc);
 }
@@ -1816,7 +1853,7 @@ function initOrientation() {
 }
 function onOrient(e) {
   var h=e.webkitCompassHeading!=null?e.webkitCompassHeading:(e.alpha!=null?(360-e.alpha)%360:null);
-  if(h!=null&&S.heading===null){S.heading=h;document.getElementById('mHead').textContent=Math.round(h);draw();}
+  if(h!=null&&S.heading===null){S.heading=h;setHeadingDisplays(S.heading);draw();}
 }
 
 // ── SPLASH ──
