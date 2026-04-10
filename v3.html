@@ -744,10 +744,14 @@ function clearSave() { try { localStorage.removeItem(KEY); } catch(e){} }
 })();
 
 function applySettings() {
-  document.getElementById('swathDisplay').textContent = S.swathFt + ' ft';
-  document.getElementById('swathEditInput').value = S.swathFt;
-  document.getElementById('mUnit').textContent = S.units === 'acres' ? 'ACRES' : 'HECT';
-  document.getElementById('equipWidth').textContent = S.swathFt.toFixed(1);
+  var sd = document.getElementById('swathDisplay');
+  if (sd) sd.textContent = S.swathFt + ' ft';
+  var sw = document.getElementById('swathEditInput');
+  if (sw) sw.value = S.swathFt;
+  var mu = document.getElementById('mUnit');
+  if (mu) mu.textContent = S.units === 'acres' ? 'ACRES' : 'HECT';
+  var ew = document.getElementById('equipWidth');
+  if (ew) ew.textContent = S.swathFt.toFixed(1);
   setOffset(S.offset, true);
   updateSwathColor();
 }
@@ -755,7 +759,8 @@ function applySettings() {
 function updateSwathColor() {
   var el = document.getElementById('mSwath');
   if (el) el.textContent = S.swathFt + 'ft';
-  document.getElementById('swathDisplay').textContent = S.swathFt + ' ft';
+  var sd = document.getElementById('swathDisplay');
+  if (sd) sd.textContent = S.swathFt + ' ft';
 }
 function fmtTime(ts) {
   if(!ts)return'';
@@ -1025,7 +1030,7 @@ function onPos(p) {
       if(diff>180)diff-=360; if(diff<-180)diff+=360;
       S.heading=(S.heading+diff*0.25+360)%360;
     }
-    document.getElementById('mHead').textContent=Math.round(S.heading);
+    var mh=document.getElementById('mHead'); if(mh) mh.textContent=Math.round(S.heading);
   }
   if (S.recording && spd != null && spd > 0.5) {  // must be > ~1.1 mph
     var minDist = S.curPass.length < 3 ? 5 : 3;    // stricter at start to kill initial drift
@@ -1553,8 +1558,10 @@ function closeSwathEdit() {
     S.swathFt = v;
     var el = document.getElementById('mSwath');
     if (el) el.textContent = S.swathFt + 'ft';
-    document.getElementById('swathDisplay').textContent = S.swathFt + ' ft';
-    document.getElementById('equipWidth').textContent = S.swathFt.toFixed(1);
+    var sd = document.getElementById('swathDisplay');
+    if (sd) sd.textContent = S.swathFt + ' ft';
+    var ew = document.getElementById('equipWidth');
+    if (ew) ew.textContent = S.swathFt.toFixed(1);
     toast('SWATH: ' + S.swathFt + ' FT');
     calcArea(); draw();
   }
@@ -1570,9 +1577,11 @@ document.getElementById('swathEdit').addEventListener('click', function(e){ if(e
 // EQUIPMENT
 // ═══════════════════════════════════════════════════
 function adjustWidth(n) {
-  S.swathFt=Math.max(1,Math.min(300,S.swathFt+n));
-  document.getElementById('equipWidth').textContent=S.swathFt.toFixed(1);
-  document.getElementById('swathDisplay').textContent=S.swathFt+' ft  ✎';
+  S.swathFt = Math.max(1, Math.min(300, S.swathFt + n));
+  var el = document.getElementById('mSwath');
+  if (el) el.textContent = S.swathFt + 'ft';
+  var ew = document.getElementById('equipWidth');
+  if (ew) ew.textContent = S.swathFt.toFixed(1);
   calcArea(); draw();
 }
 function setOffset(v, quiet) {
@@ -1833,7 +1842,7 @@ function initOrientation() {
 }
 function onOrient(e) {
   var h=e.webkitCompassHeading!=null?e.webkitCompassHeading:(e.alpha!=null?(360-e.alpha)%360:null);
-  if(h!=null&&S.heading===null){S.heading=h;document.getElementById('mHead').textContent=Math.round(h);draw();}
+  if(h!=null&&S.heading===null){S.heading=h;var mh2=document.getElementById('mHead'); if(mh2) mh2.textContent=Math.round(h);draw();}
 }
 
 // ── SPLASH ──
