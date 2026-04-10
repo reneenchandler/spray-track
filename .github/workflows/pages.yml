@@ -28,7 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p _site
-          cp index.html v1.html v2.html v3.html _site/
+          cp index.html v1.html v2.html v3.html site.webmanifest _site/
           shopt -s nullglob
           assets=( *.png *.jpg *.jpeg *.webp *.svg *.ico )
           if [ "${#assets[@]}" -gt 0 ]; then
