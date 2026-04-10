@@ -440,6 +440,44 @@ var courseUp  = true;
 var loopMode  = false;   // false = pass mode, true = loop mode
 var cv, ctx;
 
+// ── STORAGE ──
+var STORAGE_KEY = 'spraytrack_v1';
+
+function saveSession() {
+  if (!origin) return;
+  try {
+    var data = {
+      swathFt: swathFt,
+      units: units,
+      origin: origin,
+      passes: passes,
+      savedAt: Date.now()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch(e) {}
+}
+
+function loadSession() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+}
+
+function clearSession() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+}
+
+function formatSavedTime(ts) {
+  if (!ts) return '';
+  var d = new Date(ts);
+  var h = d.getHours(), m = d.getMinutes();
+  var ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return (d.getMonth()+1) + '/' + d.getDate() + ' ' + h + ':' + (m<10?'0':'')+m + ' ' + ampm;
+}
+
 // ── SETUP ──
 document.getElementById('goBtn').addEventListener('click', function() {
   swathFt = parseFloat(document.getElementById('inSwath').value) || 40;
@@ -448,11 +486,55 @@ document.getElementById('goBtn').addEventListener('click', function() {
   document.getElementById('swathVal').textContent = swathFt + ' ft';
   document.getElementById('mUnit').textContent = units === 'acres' ? 'ACRES' : 'HECT';
   document.getElementById('setup').classList.add('gone');
+  clearSession(); // fresh session chosen manually
   initCanvas();
   startGPS();
   doWakeLock();
   initOrientation();
 });
+
+// Check for a saved session and offer to restore it
+(function checkSaved() {
+  var saved = loadSession();
+  if (!saved || !saved.passes || saved.passes.length === 0) return;
+
+  // Inject a "Resume" button into the setup screen
+  var resumeDiv = document.createElement('div');
+  resumeDiv.style.cssText = 'width:100%;max-width:300px;margin-top:-8px;';
+  resumeDiv.innerHTML =
+    '<div style="text-align:center;font-size:10px;letter-spacing:2px;color:#4a6a4a;margin-bottom:8px;">── OR ──</div>' +
+    '<button id="resumeBtn" style="width:100%;background:transparent;border:2px solid #39FF14;border-radius:8px;' +
+    'color:#39FF14;font-size:16px;font-weight:700;letter-spacing:2px;padding:16px;cursor:pointer;font-family:\'Courier New\',monospace;">' +
+    '⟳ RESUME SESSION<br><span style="font-size:10px;letter-spacing:1px;color:#4a6a4a;">' +
+    saved.passes.length + ' PASS' + (saved.passes.length !== 1 ? 'ES' : '') + ' · ' + formatSavedTime(saved.savedAt) +
+    '</span></button>';
+
+  var goBtn = document.getElementById('goBtn');
+  goBtn.parentNode.insertBefore(resumeDiv, goBtn.nextSibling);
+
+  document.getElementById('resumeBtn').addEventListener('click', function() {
+    // Restore state
+    swathFt = saved.swathFt || 40;
+    units   = saved.units || 'acres';
+    origin  = saved.origin;
+    passes  = saved.passes;
+
+    document.getElementById('inSwath').value = swathFt;
+    document.getElementById('swathSlider').value = swathFt;
+    document.getElementById('swathVal').textContent = swathFt + ' ft';
+    document.getElementById('mUnit').textContent = units === 'acres' ? 'ACRES' : 'HECT';
+    document.getElementById('setup').classList.add('gone');
+
+    gpsReady = true; // origin already known
+    updateBadge();
+    calcArea();
+    initCanvas();
+    startGPS();
+    doWakeLock();
+    initOrientation();
+    toast('SESSION RESTORED — ' + passes.length + ' PASS' + (passes.length !== 1 ? 'ES' : '') + ' LOADED');
+  });
+})();
 
 // ── MODE ──
 function setMode(m) {
@@ -550,16 +632,14 @@ function onPos(p) {
 
   if (following) { camMX = curMX; camMY = curMY; }
 
-  // Speed: must be a real number > 0.9 m/s (~2 mph) to count as moving
   var spdMph = (spd != null && spd > 0) ? spd * 2.23694 : 0;
   document.getElementById('mSpeed').textContent = spdMph.toFixed(1);
 
-  // Smooth heading with a rolling average to prevent jitter
-  if (hdg != null && spd != null && spd > 0.5) {
+  // Smooth heading — only update when moving (> 0.2 m/s = ~0.5 mph)
+  if (hdg != null && spd != null && spd > 0.2) {
     if (heading === null) {
       heading = hdg;
     } else {
-      // Circular mean to handle 0/360 wrap
       var diff = hdg - heading;
       if (diff > 180) diff -= 360;
       if (diff < -180) diff += 360;
@@ -571,12 +651,11 @@ function onPos(p) {
   }
 
   if (recording) {
-    // Only record if ACTUALLY moving: speed > 0.9 m/s (~2 mph)
-    var isMoving = (spd != null && spd > 0.9);
+    // Record when moving > ~0.5 mph (0.22 m/s)
+    var isMoving = (spd != null && spd > 0.22);
     if (isMoving) {
-      // Also require minimum distance from last recorded point (5 meters)
-      // to avoid recording GPS micro-jitter at low speed
-      var minDistM = 3;
+      // Minimum 1.5m between recorded points to reduce noise
+      var minDistM = 1.5;
       var shouldRecord = true;
       if (curPass.length > 0) {
         var last = curPass[curPass.length - 1];
@@ -920,6 +999,7 @@ document.getElementById('recBtn').addEventListener('click', function() {
       passes.push({ pts: curPass.slice(), loop: loopMode });
       updateBadge();
       calcArea();
+      saveSession();
       toast((loopMode ? 'LOOP ' : 'PASS ') + passes.length + ' SAVED');
     } else {
       toast('TOO SHORT \u2014 DRIVE FIRST');
@@ -946,6 +1026,7 @@ document.getElementById('undoBtn').addEventListener('click', function() {
   passes.pop();
   updateBadge();
   calcArea();
+  saveSession();
   toast('LAST PASS REMOVED');
   draw();
 });
@@ -959,6 +1040,7 @@ document.getElementById('clearBtn').addEventListener('click', function() {
   btn.classList.remove('active');
   document.getElementById('mArea').textContent = '0.00';
   document.getElementById('lightbar').classList.remove('visible');
+  clearSession();
   updateBadge();
   draw();
   toast('CLEARED');
