@@ -58,10 +58,10 @@ text-transform: uppercase;
 }
 .navBtn svg { width: 22px; height: 22px; }
 .navBtn svg path, .navBtn svg polygon, .navBtn svg rect,
-.navBtn svg line, .navBtn svg circle { stroke: var(–muted); }
-.navBtn.active { color: var(–green); }
+.navBtn svg line, .navBtn svg circle { stroke: #555; stroke-width: 2; }
+.navBtn.active { color: #FFE600; }
 .navBtn.active svg path, .navBtn.active svg polygon, .navBtn.active svg rect,
-.navBtn.active svg line, .navBtn.active svg circle { stroke: var(–green); }
+.navBtn.active svg line, .navBtn.active svg circle { stroke: #FFE600; }
 
 /* ── SPLASH ── */
 #splash {
@@ -411,6 +411,18 @@ letter-spacing:1px; padding:10px; cursor:pointer;
 .offsetBtn:last-child { border-right:none; }
 .offsetBtn.active { background:rgba(57,255,20,0.12); color:var(–green); }
 
+/* ── COLLAPSE TOGGLE ── */
+#collapseBtn {
+background: #000; border: none; border-top: 2px solid #333;
+width: 100%; padding: 4px; cursor: pointer;
+display: flex; align-items: center; justify-content: center;
+flex-shrink: 0;
+}
+#collapseBtn svg { width: 20px; height: 14px; transition: transform 0.2s; }
+#collapseBtn.collapsed svg { transform: rotate(180deg); }
+#collapsiblePanel { flex-shrink: 0; overflow: hidden; transition: max-height 0.25s ease; max-height: 200px; }
+#collapsiblePanel.hidden { max-height: 0; }
+
 /* ── TOAST ── */
 #toast {
 position:fixed; bottom:140px; left:50%; transform:translateX(-50%);
@@ -502,18 +514,29 @@ font-family:‘Courier New’,monospace;
     <div class="metric"><div class="mlabel">COVERED</div><div class="mval" id="mArea">0.00</div><div class="munit" id="mUnit">ACRES</div></div>
     <div class="metric"><div class="mlabel">HEADING</div><div class="mval" id="mHead">---</div><div class="munit">DEG</div></div>
   </div>
-  <div id="swathBar" onclick="openSwathEdit()">
-    <span>SWATH</span>
-    <div id="swathDisplay">40 ft ✎</div>
-  </div>
-  <div id="modeRow">
-    <button class="modeBtn active" id="modePass" onclick="setMode('pass')">▶▶ PASS</button>
-    <button class="modeBtn"        id="modeLoop" onclick="setMode('loop')">↺ LOOP</button>
-  </div>
-  <div id="controls">
-    <button class="btn btn-clear" id="clearBtn">CLEAR</button>
-    <button class="btn btn-go"    id="recBtn">▶ START PASS</button>
-    <button class="btn btn-undo"  id="undoBtn">UNDO</button>
+
+  <!-- Collapse toggle -->
+
+  <button id="collapseBtn" onclick="togglePanel()">
+    <svg viewBox="0 0 20 12" fill="none"><polyline points="2,10 10,2 18,10" stroke="#666" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+
+  <!-- Collapsible: swath + mode + controls -->
+
+  <div id="collapsiblePanel">
+    <div id="swathBar" onclick="openSwathEdit()">
+      <span>SWATH</span>
+      <div id="swathDisplay">40 ft ✎</div>
+    </div>
+    <div id="modeRow">
+      <button class="modeBtn active" id="modePass" onclick="setMode('pass')">▶▶ PASS</button>
+      <button class="modeBtn"        id="modeLoop" onclick="setMode('loop')">↺ LOOP</button>
+    </div>
+    <div id="controls">
+      <button class="btn btn-clear" id="clearBtn">CLEAR</button>
+      <button class="btn btn-go"    id="recBtn">▶ START PASS</button>
+      <button class="btn btn-undo"  id="undoBtn">UNDO</button>
+    </div>
   </div>
 </div>
 
@@ -1118,8 +1141,8 @@ function draw() {
     ctx.restore();
   }
 
-  // North indicator
-  if (S.courseUp&&S.heading!==null) drawNorth(W,H,dpr);
+  // North/heading compass — always shown when heading known
+  if (S.heading !== null) drawNorth(W,H,dpr);
   // Scale bar
   drawScaleBar(W,H,dpr,sc);
 }
@@ -1226,17 +1249,34 @@ function drawGhost(swM,sx,sy) {
 }
 
 function drawNorth(W,H,dpr) {
-  var cx=W-40*dpr,cy=40*dpr,r=20*dpr;
-  var na=-Math.PI/2-(S.heading*Math.PI/180);
+  if (S.heading === null) return;
+  var cx=W-44*dpr, cy=44*dpr, r=22*dpr;
+  // In course-up: north arrow rotates to show true north direction
+  // In north-up: arrow always points up (heading=0)
+  var na = S.courseUp
+    ? -Math.PI/2 - (S.heading * Math.PI/180)
+    : -Math.PI/2;
   ctx.save(); ctx.translate(cx,cy);
+  // Solid black circle background
   ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
-  ctx.fillStyle='rgba(8,13,8,0.88)'; ctx.fill();
-  ctx.strokeStyle='#1a2a1a'; ctx.lineWidth=1.5; ctx.stroke();
-  var tx=Math.cos(na)*(r-6),ty=Math.sin(na)*(r-6);
+  ctx.fillStyle='#000'; ctx.fill();
+  ctx.strokeStyle='#444'; ctx.lineWidth=2; ctx.stroke();
+  // Cardinal letters
+  ctx.font='bold '+(8*dpr)+'px monospace';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle='#666';
+  ctx.fillText('N', 0, -(r-7*dpr));
+  ctx.fillText('S', 0,  (r-7*dpr));
+  ctx.fillText('E', (r-7*dpr), 0);
+  ctx.fillText('W', -(r-7*dpr), 0);
+  // Red north needle
+  var tx=Math.cos(na)*(r-10*dpr), ty=Math.sin(na)*(r-10*dpr);
   ctx.beginPath(); ctx.moveTo(-tx*0.5,-ty*0.5); ctx.lineTo(tx,ty);
-  ctx.strokeStyle='#FF3B30'; ctx.lineWidth=2.5; ctx.stroke();
-  ctx.fillStyle='#FF3B30'; ctx.font='bold '+(9*dpr)+'px monospace';
-  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('N',tx*0.55,ty*0.55);
+  ctx.strokeStyle='#FF3B30'; ctx.lineWidth=3*dpr; ctx.stroke();
+  // Heading degrees
+  ctx.fillStyle='#fff';
+  ctx.font='bold '+(8*dpr)+'px monospace';
+  ctx.fillText(Math.round(S.heading)+'°', 0, r*0.35);
   ctx.restore();
 }
 function drawScaleBar(W,H,dpr,sc) {
@@ -1472,6 +1512,15 @@ function setFollow(on) {
   fb.textContent=on?'📍 FOLLOWING':'📍 PANNING';
   fb.classList.toggle('on',on); fb.classList.toggle('amber',!on);
   if(on&&S.gpsReady){S.camMX=S.curMX;S.camMY=S.curMY;updateTiles();draw();}
+}
+
+// ── COLLAPSE PANEL ──
+function togglePanel() {
+  var panel = document.getElementById('collapsiblePanel');
+  var btn   = document.getElementById('collapseBtn');
+  var collapsed = panel.classList.toggle('hidden');
+  btn.classList.toggle('collapsed', collapsed);
+  setTimeout(function(){ if(cv) resizeCanvas(); }, 280);
 }
 
 // ═══════════════════════════════════════════════════
