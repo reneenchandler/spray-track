@@ -216,11 +216,7 @@ background:#000; border-top:2px solid #222; flex-shrink:0;
 .munit  { font-size:9px; color:#888; letter-spacing:1px; }
 
 /* ── SWATH / MODE / CONTROLS ── */
-#swathBar {
-background:#000; border-top:1px solid #222;
-padding:7px 16px; display:flex; align-items:center; gap:10px;
-flex-shrink:0; cursor:pointer;
-}
+#swathBar { display: none; }
 #swathBar span { font-size:10px; font-weight:700; letter-spacing:3px; color:#888; }
 #swathDisplay { flex:1; font-size:16px; color:#fff; text-align:right; font-weight:700; }
 #swathEdit {
@@ -510,6 +506,13 @@ font-family:‘Courier New’,monospace;
       <div id="lbDots"></div>
       <div id="lbText">WAITING</div>
     </div>
+    <!-- Transparent tap target over compass (bottom-right) to edit swath -->
+    <button id="compassTap" onclick="openSwathEdit()" style="
+      position:absolute; bottom:10px; right:10px;
+      width:72px; height:72px; border-radius:50%;
+      background:transparent; border:none; z-index:15; cursor:pointer;
+      -webkit-appearance:none;
+    " title="Tap to edit swath width"></button>
   </div>
   <div id="driveMetrics">
     <div class="metric"><div class="mlabel">SPEED</div><div class="mval" id="mSpeed">0.0</div><div class="munit">MPH</div></div>
@@ -1280,19 +1283,19 @@ function drawNorth(W,H,dpr) {
   });
 
   // Red north needle pointing to true north
-  var tx = Math.cos(na) * (r - 14*dpr);
-  var ty = Math.sin(na) * (r - 14*dpr);
+  var tx = Math.cos(na) * (r - 10*dpr);
+  var ty = Math.sin(na) * (r - 10*dpr);
   ctx.beginPath();
   ctx.moveTo(-tx*0.4, -ty*0.4);
   ctx.lineTo(tx, ty);
   ctx.strokeStyle = '#FF3B30'; ctx.lineWidth = 3.5*dpr;
   ctx.lineCap = 'round'; ctx.stroke();
 
-  // Heading degrees in center in yellow
+  // Swath width in center
   ctx.fillStyle = '#FFE600';
-  ctx.font = 'bold ' + (9*dpr) + 'px monospace';
+  ctx.font = 'bold ' + (8*dpr) + 'px monospace';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(Math.round(S.heading)+'°', 0, 0);
+  ctx.fillText(S.swathFt + 'ft', 0, 0);
 
   ctx.restore();
 }
