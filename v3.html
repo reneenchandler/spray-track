@@ -817,11 +817,50 @@ function tileToLatLon(tx, ty, zoom) {
   return { lat: latR * 180 / Math.PI, lon: lon };
 }
 
-// Tile image cache so we don't re-fetch on every draw
+// Tile image cache
 var tileCache = {};
+var tileRedrawTimer = null;
+
+function prefetchTile(tx, ty, zoom) {
+  var key = zoom+'/'+ty+'/'+tx;
+  if (key in tileCache) return; // already fetched or fetching
+  tileCache[key] = null; // mark as in-progress
+  var img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = function() {
+    tileCache[key] = img;
+    // Throttle redraws — only redraw 100ms after last tile loads
+    clearTimeout(tileRedrawTimer);
+    tileRedrawTimer = setTimeout(draw, 100);
+  };
+  img.onerror = function() { tileCache[key] = 'err'; };
+  img.src = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/'+key;
+}
 
 function updateTiles() {
   if (!S.origin || !cv) return;
+  var zoom = S.tileZoom;
+  var mpp = getTileMetersPerPixel(S.origin.lat, zoom);
+  var dpr = window.devicePixelRatio || 1;
+  var tileSizePx = 256 * mpp * S.scale * dpr;
+  var diagonal = Math.sqrt(cv.width*cv.width + cv.height*cv.height);
+  var buf = Math.ceil(diagonal / tileSizePx / 2) + 2;
+  var n = Math.pow(2, zoom);
+  var curLat = S.origin.lat + myToLat(S.curMY);
+  var curLon = S.origin.lon + mxToLon(S.curMX);
+  var fracTileX = (curLon + 180) / 360 * n;
+  var latR2 = curLat * Math.PI / 180;
+  var fracTileY = (1 - Math.log(Math.tan(latR2) + 1/Math.cos(latR2)) / Math.PI) / 2 * n;
+  var cx2 = Math.floor(fracTileX), cy2 = Math.floor(fracTileY);
+  for (var tx = cx2-buf; tx <= cx2+buf; tx++) {
+    for (var ty = cy2-buf; ty <= cy2+buf; ty++) {
+      prefetchTile(tx, ty, zoom);
+    }
+  }
+}
+
+function drawTiles(sx, sy) {
+  if (!S.origin) return;
   var zoom = S.tileZoom;
   var mpp = getTileMetersPerPixel(S.origin.lat, zoom);
   var dpr = window.devicePixelRatio || 1;
@@ -835,68 +874,26 @@ function updateTiles() {
   var fracTileX = (curLon + 180) / 360 * n;
   var latR2 = curLat * Math.PI / 180;
   var fracTileY = (1 - Math.log(Math.tan(latR2) + 1/Math.cos(latR2)) / Math.PI) / 2 * n;
-  var cx2 = Math.floor(fracTileX), cy2 = Math.floor(fracTileY);
-
-  for (var tx = cx2-buf; tx <= cx2+buf; tx++) {
-    for (var ty = cy2-buf; ty <= cy2+buf; ty++) {
-      prefetchTile(tx, ty, zoom);
-    }
-  }
-}
-
-function prefetchTile(tx, ty, zoom) {
-  var key = zoom+'/'+ty+'/'+tx;
-  if (tileCache[key]) return;
-  var img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.src = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/'+key;
-  img.onload = function() { tileCache[key] = img; draw(); };
-  img.onerror = function() { tileCache[key] = null; };
-  tileCache[key] = img; // store immediately (even if loading)
-}
-
-function drawTiles(sx, sy) {
-  if (!S.origin) return;
-  var zoom = S.tileZoom;
-  var mpp = getTileMetersPerPixel(S.origin.lat, zoom);
-  var dpr = window.devicePixelRatio || 1;
-  var sc = S.scale * dpr;
-
-  // Size of one tile in screen pixels
-  var tileSizePx = 256 * mpp * sc;
-
-  // Current position in fractional tile coords
-  var n = Math.pow(2, zoom);
-  var curLat = S.origin.lat + myToLat(S.curMY);
-  var curLon = S.origin.lon + mxToLon(S.curMX);
-  var fracTileX = (curLon + 180) / 360 * n;
-  var latR2 = curLat * Math.PI / 180;
-  var fracTileY = (1 - Math.log(Math.tan(latR2) + 1/Math.cos(latR2)) / Math.PI) / 2 * n;
   var cTX = Math.floor(fracTileX), cTY = Math.floor(fracTileY);
-
-  // Calculate buffer needed to fill screen + rotation margin (√2 for worst case 45°)
-  var W = cv.width, H = cv.height;
-  var diagonal = Math.sqrt(W*W + H*H);
-  var buf = Math.ceil(diagonal / tileSizePx / 2) + 2;
 
   for (var tx = cTX - buf; tx <= cTX + buf; tx++) {
     for (var ty = cTY - buf; ty <= cTY + buf; ty++) {
+      prefetchTile(tx, ty, zoom);
       var key = zoom+'/'+ty+'/'+tx;
       var img = tileCache[key];
-      if (!img || !img.complete || img.naturalWidth === 0) {
-        prefetchTile(tx, ty, zoom);
-        continue;
-      }
-      // Tile corners in world coords
+      if (!img || img === 'err' || !img.complete || img.naturalWidth === 0) continue;
+
+      // Tile corners in world coords (meters from origin)
       var tl = tileToLatLon(tx,   ty,   zoom);
       var br = tileToLatLon(tx+1, ty+1, zoom);
       var tlMX = mxFromLonAbs(tl.lon), tlMY = myFromLatAbs(tl.lat);
       var brMX = mxFromLonAbs(br.lon), brMY = myFromLatAbs(br.lat);
-      // Project to screen using same sx/sy as everything else
+
+      // Project corners to screen pixels using same sx/sy as passes/arrow
       var x1 = sx(tlMX, tlMY), y1 = sy(tlMX, tlMY);
       var x2 = sx(brMX, brMY), y2 = sy(brMX, brMY);
       var w = x2 - x1, h = y2 - y1;
-      if (w > 0 && h > 0) {
+      if (w > 1 && h > 1) {
         ctx.drawImage(img, x1, y1, w, h);
       }
     }
