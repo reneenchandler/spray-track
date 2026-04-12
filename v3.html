@@ -40,14 +40,19 @@ body {
 /* ── SCREENS ── */
 .screen { display: none; flex-direction: column; height: 100dvh; }
 .screen.active { display: flex; }
+/* Fields/worklog/equip need bottom padding for fixed nav */
+#fieldsScreen, #fieldDetailScreen, #worklogScreen, #equipScreen { padding-bottom: 70px; }
 
 /* ── NAV BAR (bottom) ── */
 #navBar {
-background: #111; border-top: 2px solid #222;
+background: #000; border-top: 2px solid #333;
 display: flex; flex-shrink: 0;
-padding-bottom: max(env(safe-area-inset-bottom), 12px);
-position: relative; z-index: 50;
+padding-bottom: max(env(safe-area-inset-bottom), 10px);
+position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
 }
+/* Prevent drive screen controls hiding behind fixed nav */
+#driveScreen { padding-bottom: 0; }
+#collapsiblePanel { padding-bottom: 70px; }
 .navBtn {
 flex: 1; background: transparent; border: none;
 color: #888; font-family: ‘Courier New’, monospace;
@@ -837,9 +842,15 @@ function updateTiles() {
     zoom
   );
 
-  // The fractional offset within the current tile
-  var fracX = curTile.x - Math.floor(curTile.x);  // not used but helpful conceptually
-  // Actually latLonToTile returns integer tiles, so compute fractional manually
+  // Apply rotation to match course-up canvas rotation
+  var rotDeg = (S.courseUp && S.heading !== null) ? -S.heading : 0;
+  var W = cv.width / (window.devicePixelRatio || 1);
+  var H = cv.height / (window.devicePixelRatio || 1);
+  var dotX = W / 2;
+  var dotY = S.courseUp ? H * 0.68 : H / 2;
+  tileLayer.style.transformOrigin = dotX + 'px ' + dotY + 'px';
+  tileLayer.style.transform = 'rotate(' + rotDeg + 'deg)';
+
   var n = Math.pow(2, zoom);
   var curLat = S.origin.lat + myToLat(S.curMY);
   var curLon = S.origin.lon + mxToLon(S.curMX);
@@ -847,15 +858,10 @@ function updateTiles() {
   var latR = curLat * Math.PI / 180;
   var fracTileY = (1 - Math.log(Math.tan(latR) + 1/Math.cos(latR)) / Math.PI) / 2 * n;
 
-  // Screen anchor: tractor dot position
-  var W = cv.width / (window.devicePixelRatio || 1);
-  var H = cv.height / (window.devicePixelRatio || 1);
-  var dotX = W / 2;
-  var dotY = S.courseUp ? H * 0.68 : H / 2;
-
-  // How many tiles to draw in each direction
-  var tilesX = Math.ceil(W / tileSizePx) + 2;
-  var tilesY = Math.ceil(H / tileSizePx) + 2;
+  // Load extra tiles when rotated so corners don't go blank
+  var tileBuffer = S.courseUp ? 3 : 2;
+  var tilesX = Math.ceil(W / tileSizePx) + tileBuffer;
+  var tilesY = Math.ceil(H / tileSizePx) + tileBuffer;
 
   var centerTileX = Math.floor(fracTileX);
   var centerTileY = Math.floor(fracTileY);
@@ -1292,12 +1298,6 @@ function drawNorth(W,H,dpr) {
   ctx.strokeStyle = '#FF3B30'; ctx.lineWidth = 3.5*dpr;
   ctx.lineCap = 'round'; ctx.stroke();
 
-  // Swath width in center
-  ctx.fillStyle = '#FFE600';
-  ctx.font = 'bold ' + (8*dpr) + 'px monospace';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(S.swathFt + 'ft', 0, 0);
-
   ctx.restore();
 }
 function drawScaleBar(W,H,dpr,sc) {
@@ -1519,7 +1519,11 @@ document.getElementById('orientBtn').addEventListener('click', function() {
   this.classList.toggle('on', S.courseUp); this.classList.toggle('amber',!S.courseUp);
   var fb=document.getElementById('followBtn');
   if(S.courseUp){fb.textContent='📍 LOCKED';fb.classList.add('on');fb.classList.remove('amber');}
-  else{fb.textContent='📍 FOLLOWING';setFollow(true);}
+  else{
+    fb.textContent='📍 FOLLOWING';setFollow(true);
+    // Reset tile layer rotation
+    document.getElementById('tileLayer').style.transform='rotate(0deg)';
+  }
   toast(S.courseUp?'COURSE-UP':'NORTH-UP');
   updateTiles(); draw();
 });
