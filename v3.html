@@ -157,9 +157,7 @@ flex-shrink: 0;
 #mapWrap {
 flex: 1; position: relative; overflow: hidden; background: #1a1a1a;
 }
-#tileLayer {
-position: absolute; inset: 0; overflow: hidden;
-}
+#tileLayer { display: none; }
 #tileLayer img {
 position: absolute; image-rendering: pixelated;
 }
@@ -819,74 +817,85 @@ function tileToLatLon(tx, ty, zoom) {
   return { lat: latR * 180 / Math.PI, lon: lon };
 }
 
+// Tile image cache so we don't re-fetch on every draw
+var tileCache = {};
+
 function updateTiles() {
+  // No-op — tiles are now drawn directly on canvas in drawTiles()
+  // Just pre-fetch tiles around current position
   if (!S.origin || !cv) return;
-  var tileLayer = document.getElementById('tileLayer');
-  tileLayer.innerHTML = '';
-
-  // Pick zoom level based on current scale
   var zoom = S.tileZoom;
-
-  // Meters per tile pixel at this zoom and latitude
-  var mpp = getTileMetersPerPixel(S.origin.lat, zoom); // meters per tile pixel
-
-  // On screen: S.scale = pixels per meter (our world scale)
-  // So one tile pixel = S.scale * mpp screen pixels
-  // One full tile (256px) = 256 * S.scale * mpp screen pixels
-  var tileSizePx = 256 * S.scale * mpp; // screen pixels per tile
-
-  // Current position in tile coordinates (fractional)
-  var curTile = latLonToTile(
-    S.origin.lat + myToLat(S.curMY),
-    S.origin.lon + mxToLon(S.curMX),
-    zoom
-  );
-
-  // Apply rotation to match course-up canvas rotation
-  var rotDeg = (S.courseUp && S.heading !== null) ? -S.heading : 0;
   var W = cv.width / (window.devicePixelRatio || 1);
   var H = cv.height / (window.devicePixelRatio || 1);
-  var dotX = W / 2;
-  var dotY = S.courseUp ? H * 0.68 : H / 2;
-  // Scale up by sqrt(2) so corners are always covered when rotated 45°
-  var overscale = S.courseUp ? 1.5 : 1.0;
-  tileLayer.style.transformOrigin = dotX + 'px ' + dotY + 'px';
-  tileLayer.style.transform = 'rotate(' + rotDeg + 'deg) scale(' + overscale + ')';
-
   var n = Math.pow(2, zoom);
   var curLat = S.origin.lat + myToLat(S.curMY);
   var curLon = S.origin.lon + mxToLon(S.curMX);
   var fracTileX = (curLon + 180) / 360 * n;
-  var latR = curLat * Math.PI / 180;
-  var fracTileY = (1 - Math.log(Math.tan(latR) + 1/Math.cos(latR)) / Math.PI) / 2 * n;
+  var latR2 = curLat * Math.PI / 180;
+  var fracTileY = (1 - Math.log(Math.tan(latR2) + 1/Math.cos(latR2)) / Math.PI) / 2 * n;
+  var cx2 = Math.floor(fracTileX), cy2 = Math.floor(fracTileY);
+  var buf = 4;
+  for (var tx = cx2-buf; tx <= cx2+buf; tx++) {
+    for (var ty = cy2-buf; ty <= cy2+buf; ty++) {
+      prefetchTile(tx, ty, zoom);
+    }
+  }
+}
 
-  // Load extra tiles to cover overscaled+rotated area
-  var tileBuffer = S.courseUp ? 4 : 2;
-  var tilesX = Math.ceil(W * overscale / tileSizePx) + tileBuffer;
-  var tilesY = Math.ceil(H * overscale / tileSizePx) + tileBuffer;
+function prefetchTile(tx, ty, zoom) {
+  var key = zoom+'/'+ty+'/'+tx;
+  if (tileCache[key]) return;
+  var img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.src = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/'+key;
+  img.onload = function() { tileCache[key] = img; draw(); };
+  img.onerror = function() { tileCache[key] = null; };
+  tileCache[key] = img; // store immediately (even if loading)
+}
 
-  var centerTileX = Math.floor(fracTileX);
-  var centerTileY = Math.floor(fracTileY);
+function drawTiles(sx, sy) {
+  if (!S.origin) return;
+  var zoom = S.tileZoom;
+  var mpp = getTileMetersPerPixel(S.origin.lat, zoom);
+  // Size of one tile in world meters
+  var tileSizeM = 256 * mpp;
+  var dpr = window.devicePixelRatio || 1;
 
-  // Pixel offset of center tile's top-left from the dot
-  var offsetX = dotX - (fracTileX - centerTileX) * tileSizePx;
-  var offsetY = dotY - (fracTileY - centerTileY) * tileSizePx;
+  // Current position in fractional tile coords
+  var n = Math.pow(2, zoom);
+  var curLat = S.origin.lat + myToLat(S.curMY);
+  var curLon = S.origin.lon + mxToLon(S.curMX);
+  var fracTileX = (curLon + 180) / 360 * n;
+  var latR2 = curLat * Math.PI / 180;
+  var fracTileY = (1 - Math.log(Math.tan(latR2) + 1/Math.cos(latR2)) / Math.PI) / 2 * n;
+  var cTX = Math.floor(fracTileX), cTY = Math.floor(fracTileY);
 
-  for (var tx = centerTileX - tilesX; tx <= centerTileX + tilesX; tx++) {
-    for (var ty = centerTileY - tilesY; ty <= centerTileY + tilesY; ty++) {
-      var img = document.createElement('img');
-      img.src = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/'
-                + zoom + '/' + ty + '/' + tx;
-      var screenX = offsetX + (tx - centerTileX) * tileSizePx;
-      var screenY = offsetY + (ty - centerTileY) * tileSizePx;
-      img.style.left   = screenX + 'px';
-      img.style.top    = screenY + 'px';
-      img.style.width  = tileSizePx + 'px';
-      img.style.height = tileSizePx + 'px';
-      img.style.position = 'absolute';
-      img.draggable = false;
-      img.loading = 'lazy';
-      tileLayer.appendChild(img);
+  var buf = 4;
+  for (var tx = cTX - buf; tx <= cTX + buf; tx++) {
+    for (var ty = cTY - buf; ty <= cTY + buf; ty++) {
+      var key = zoom+'/'+ty+'/'+tx;
+      var img = tileCache[key];
+      if (!img || !img.complete || img.naturalWidth === 0) {
+        prefetchTile(tx, ty, zoom);
+        continue;
+      }
+      // Tile top-left in lat/lon
+      var tl = tileToLatLon(tx, ty, zoom);
+      var tlMX = mxFromLonAbs(tl.lon);
+      var tlMY = myFromLatAbs(tl.lat);
+      // Tile bottom-right
+      var br = tileToLatLon(tx+1, ty+1, zoom);
+      var brMX = mxFromLonAbs(br.lon);
+      var brMY = myFromLatAbs(br.lat);
+      // Screen coords of tile corners using same sx/sy as everything else
+      var x1 = sx(tlMX, tlMY), y1 = sy(tlMX, tlMY);
+      var x2 = sx(brMX, brMY), y2 = sy(brMX, brMY);
+      // Draw tile — note tiles are axis-aligned in world space
+      // so we can just use width/height from projected corners
+      var w = x2 - x1, h = y2 - y1;
+      if (w > 0 && h > 0) {
+        ctx.drawImage(img, x1, y1, w, h);
+      }
     }
   }
 }
@@ -953,7 +962,7 @@ function onTM(e) {
     var newScale = Math.max(0.5, Math.min(40, S.scale * d / pd));
     S.scale = newScale;
     S.tileZoom = scaleToZoom(S.scale);
-    pd = d; updateTiles(); draw();
+    pd = d; draw();
   }
 }
 function tdist(t){var dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
@@ -1084,6 +1093,9 @@ function draw() {
   function sy(mx,my){ var dx=mx-refMX,dy=my-refMY; return dotY-(dy*cosR-dx*sinR)*sc; }
 
   var swM=S.swathFt*0.3048;
+
+  // ── Satellite tiles (drawn on canvas, same coords as everything else) ──
+  drawTiles(sx, sy);
 
   // Active field boundary
   if (S.activeFieldIdx>=0 && S.fields[S.activeFieldIdx]) {
