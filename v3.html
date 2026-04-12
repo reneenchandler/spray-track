@@ -848,8 +848,10 @@ function updateTiles() {
   var H = cv.height / (window.devicePixelRatio || 1);
   var dotX = W / 2;
   var dotY = S.courseUp ? H * 0.68 : H / 2;
+  // Scale up by sqrt(2) so corners are always covered when rotated 45°
+  var overscale = S.courseUp ? 1.5 : 1.0;
   tileLayer.style.transformOrigin = dotX + 'px ' + dotY + 'px';
-  tileLayer.style.transform = 'rotate(' + rotDeg + 'deg)';
+  tileLayer.style.transform = 'rotate(' + rotDeg + 'deg) scale(' + overscale + ')';
 
   var n = Math.pow(2, zoom);
   var curLat = S.origin.lat + myToLat(S.curMY);
@@ -858,10 +860,10 @@ function updateTiles() {
   var latR = curLat * Math.PI / 180;
   var fracTileY = (1 - Math.log(Math.tan(latR) + 1/Math.cos(latR)) / Math.PI) / 2 * n;
 
-  // Load extra tiles when rotated so corners don't go blank
-  var tileBuffer = S.courseUp ? 3 : 2;
-  var tilesX = Math.ceil(W / tileSizePx) + tileBuffer;
-  var tilesY = Math.ceil(H / tileSizePx) + tileBuffer;
+  // Load extra tiles to cover overscaled+rotated area
+  var tileBuffer = S.courseUp ? 4 : 2;
+  var tilesX = Math.ceil(W * overscale / tileSizePx) + tileBuffer;
+  var tilesY = Math.ceil(H * overscale / tileSizePx) + tileBuffer;
 
   var centerTileX = Math.floor(fracTileX);
   var centerTileY = Math.floor(fracTileY);
