@@ -821,12 +821,14 @@ function tileToLatLon(tx, ty, zoom) {
 var tileCache = {};
 
 function updateTiles() {
-  // No-op — tiles are now drawn directly on canvas in drawTiles()
-  // Just pre-fetch tiles around current position
   if (!S.origin || !cv) return;
   var zoom = S.tileZoom;
-  var W = cv.width / (window.devicePixelRatio || 1);
-  var H = cv.height / (window.devicePixelRatio || 1);
+  var mpp = getTileMetersPerPixel(S.origin.lat, zoom);
+  var dpr = window.devicePixelRatio || 1;
+  var tileSizePx = 256 * mpp * S.scale * dpr;
+  var diagonal = Math.sqrt(cv.width*cv.width + cv.height*cv.height);
+  var buf = Math.ceil(diagonal / tileSizePx / 2) + 2;
+
   var n = Math.pow(2, zoom);
   var curLat = S.origin.lat + myToLat(S.curMY);
   var curLon = S.origin.lon + mxToLon(S.curMX);
@@ -834,7 +836,7 @@ function updateTiles() {
   var latR2 = curLat * Math.PI / 180;
   var fracTileY = (1 - Math.log(Math.tan(latR2) + 1/Math.cos(latR2)) / Math.PI) / 2 * n;
   var cx2 = Math.floor(fracTileX), cy2 = Math.floor(fracTileY);
-  var buf = 4;
+
   for (var tx = cx2-buf; tx <= cx2+buf; tx++) {
     for (var ty = cy2-buf; ty <= cy2+buf; ty++) {
       prefetchTile(tx, ty, zoom);
@@ -857,9 +859,11 @@ function drawTiles(sx, sy) {
   if (!S.origin) return;
   var zoom = S.tileZoom;
   var mpp = getTileMetersPerPixel(S.origin.lat, zoom);
-  // Size of one tile in world meters
-  var tileSizeM = 256 * mpp;
   var dpr = window.devicePixelRatio || 1;
+  var sc = S.scale * dpr;
+
+  // Size of one tile in screen pixels
+  var tileSizePx = 256 * mpp * sc;
 
   // Current position in fractional tile coords
   var n = Math.pow(2, zoom);
@@ -870,7 +874,11 @@ function drawTiles(sx, sy) {
   var fracTileY = (1 - Math.log(Math.tan(latR2) + 1/Math.cos(latR2)) / Math.PI) / 2 * n;
   var cTX = Math.floor(fracTileX), cTY = Math.floor(fracTileY);
 
-  var buf = 4;
+  // Calculate buffer needed to fill screen + rotation margin (√2 for worst case 45°)
+  var W = cv.width, H = cv.height;
+  var diagonal = Math.sqrt(W*W + H*H);
+  var buf = Math.ceil(diagonal / tileSizePx / 2) + 2;
+
   for (var tx = cTX - buf; tx <= cTX + buf; tx++) {
     for (var ty = cTY - buf; ty <= cTY + buf; ty++) {
       var key = zoom+'/'+ty+'/'+tx;
@@ -879,19 +887,14 @@ function drawTiles(sx, sy) {
         prefetchTile(tx, ty, zoom);
         continue;
       }
-      // Tile top-left in lat/lon
-      var tl = tileToLatLon(tx, ty, zoom);
-      var tlMX = mxFromLonAbs(tl.lon);
-      var tlMY = myFromLatAbs(tl.lat);
-      // Tile bottom-right
+      // Tile corners in world coords
+      var tl = tileToLatLon(tx,   ty,   zoom);
       var br = tileToLatLon(tx+1, ty+1, zoom);
-      var brMX = mxFromLonAbs(br.lon);
-      var brMY = myFromLatAbs(br.lat);
-      // Screen coords of tile corners using same sx/sy as everything else
+      var tlMX = mxFromLonAbs(tl.lon), tlMY = myFromLatAbs(tl.lat);
+      var brMX = mxFromLonAbs(br.lon), brMY = myFromLatAbs(br.lat);
+      // Project to screen using same sx/sy as everything else
       var x1 = sx(tlMX, tlMY), y1 = sy(tlMX, tlMY);
       var x2 = sx(brMX, brMY), y2 = sy(brMX, brMY);
-      // Draw tile — note tiles are axis-aligned in world space
-      // so we can just use width/height from projected corners
       var w = x2 - x1, h = y2 - y1;
       if (w > 0 && h > 0) {
         ctx.drawImage(img, x1, y1, w, h);
