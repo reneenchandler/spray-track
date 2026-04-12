@@ -687,7 +687,7 @@ var S = {
   currentJob: null,
   watchId: null,
   mapTiles: [],
-  tileZoom: 18
+  tileZoom: 19
 };
 var cv, ctx, lt=null, pd=null;
 
@@ -982,15 +982,9 @@ function onTM(e) {
 }
 function tdist(t){var dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
 function scaleToZoom(sc) {
-  // S.scale is pixels per meter. Pick tile zoom so tiles are sharp not blurry.
-  // At zoom Z, one tile pixel = mpp meters. We want tileSizePx = 256*sc*mpp ≈ 200-400px
-  // mpp at zoom Z ≈ 156543 * cos(lat) / 2^Z  (at equator cos=1)
-  // tileSizePx = 256 * sc * mpp
-  // We want tileSizePx between ~200-600px for sharpness
-  // So pick Z such that 256 * sc * 156543/2^Z ≈ 300
-  // 2^Z ≈ 256 * sc * 156543 / 300
+  // Pick zoom 1 level higher than math suggests to compensate for 1.42x CSS scale blur
   var target = 256 * sc * 156543 / 300;
-  var z = Math.round(Math.log2(target));
+  var z = Math.round(Math.log2(target)) + 1;
   return Math.max(14, Math.min(20, z));
 }
 
@@ -1055,14 +1049,29 @@ function onPos(p) {
   if (S.following || S.courseUp) { S.camMX = S.curMX; S.camMY = S.curMY; updateTiles(); }
   var mph=(spd!=null&&spd>0)?spd*2.23694:0;
   document.getElementById('mSpeed').textContent=mph.toFixed(1);
-  if (hdg!=null&&spd!=null&&spd>0.2) {
-    if (S.heading===null){ S.heading=hdg; }
-    else {
-      var diff=hdg-S.heading;
-      if(diff>180)diff-=360; if(diff<-180)diff+=360;
-      S.heading=(S.heading+diff*0.5+360)%360;
+  if (hdg != null && hdg >= 0) {
+    // Accept heading at any speed — GPS heading is only valid when moving
+    // but we want it to update through turns even at low speed
+    if (S.heading === null) {
+      S.heading = hdg;
+    } else {
+      var diff = hdg - S.heading;
+      if (diff >  180) diff -= 360;
+      if (diff < -180) diff += 360;
+      // Fast response: 0.7 factor so arrow snaps quickly through turns
+      S.heading = (S.heading + diff * 0.7 + 360) % 360;
     }
-    var mh=document.getElementById('mHead'); if(mh) mh.textContent=Math.round(S.heading);
+    var mh = document.getElementById('mHead');
+    if (mh) mh.textContent = Math.round(S.heading);
+    // Update tile rotation immediately on heading change
+    if (S.courseUp && cv) {
+      var dpr2 = window.devicePixelRatio || 1;
+      var W2 = cv.width / dpr2, H2 = cv.height / dpr2;
+      var dotX2 = W2/2, dotY2 = H2*0.68;
+      var tl = document.getElementById('tileLayer');
+      tl.style.transformOrigin = (dotX2 + W2/2) + 'px ' + (dotY2 + H2/2) + 'px';
+      tl.style.transform = 'rotate(' + (-S.heading) + 'deg) scale(1.42)';
+    }
   }
   if (S.recording && spd != null && spd > 0.5) {  // must be > ~1.1 mph
     var minDist = S.curPass.length < 3 ? 5 : 3;    // stricter at start to kill initial drift
