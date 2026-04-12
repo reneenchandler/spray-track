@@ -156,7 +156,10 @@ flex-shrink: 0;
 /* ── MAP ── */
 #mapWrap { flex: 1; position: relative; overflow: hidden; background: #111; }
 #tileLayer {
-position: absolute; inset: 0; overflow: hidden;
+position: absolute;
+/* Extend well beyond bounds so scaled+rotated tiles don’t get clipped */
+top: -50%; left: -50%; right: -50%; bottom: -50%;
+width: 200%; height: 200%;
 will-change: transform;
 }
 #tileLayer img { position: absolute; image-rendering: auto; display: block; }
@@ -854,13 +857,28 @@ function updateTiles() {
   var subX = fracTileX - cTX;
   var subY = fracTileY - cTY;
 
-  // The center tile's top-left is at dotX - subX*tileSizePx, dotY - subY*tileSizePx
-  var originX = dotX - subX * tileSizePx;
-  var originY = dotY - subY * tileSizePx;
+  // tileLayer is offset by -50% of mapWrap (W/2, H/2) due to extended positioning
+  // So add that offset to tile positions
+  var layerOffX = W / 2;
+  var layerOffY = H / 2;
 
-  // Load enough tiles to cover screen diagonal at any rotation
-  var diagonal = Math.sqrt(W * W + H * H);
-  var buf = Math.ceil(diagonal / tileSizePx / 2) + 2;
+  // The center tile's top-left on screen, adjusted for layer offset
+  var originX = dotX - subX * tileSizePx + layerOffX;
+  var originY = dotY - subY * tileSizePx + layerOffY;
+
+  // Buffer must cover the scaled area from the dot (which is off-center at 68%)
+  // Worst case distances from dot to each corner, multiplied by scale factor
+  var SCALE_FACTOR = 1.42;
+  var distTop    = dotY;
+  var distBottom = H - dotY;
+  var distLeft   = dotX;
+  var distRight  = W - dotX;
+  // Max distance from dot to any corner, scaled
+  var maxDist = Math.sqrt(
+    Math.pow(Math.max(distTop, distBottom), 2) +
+    Math.pow(Math.max(distLeft, distRight), 2)
+  ) * SCALE_FACTOR;
+  var buf = Math.ceil(maxDist / tileSizePx) + 1;
 
   for (var tx = cTX - buf; tx <= cTX + buf; tx++) {
     for (var ty = cTY - buf; ty <= cTY + buf; ty++) {
@@ -876,9 +894,9 @@ function updateTiles() {
     }
   }
 
-  // Rotate tile layer. Scale by √2 so corners never show black at any angle
+  // Transform origin accounts for the layer's -50% offset
   var rotDeg = (S.courseUp && S.heading !== null) ? -S.heading : 0;
-  tileLayer.style.transformOrigin = dotX + 'px ' + dotY + 'px';
+  tileLayer.style.transformOrigin = (dotX + layerOffX) + 'px ' + (dotY + layerOffY) + 'px';
   tileLayer.style.transform = 'rotate(' + rotDeg + 'deg) scale(1.42)';
 }
 
