@@ -876,12 +876,10 @@ function updateTiles() {
     }
   }
 
-  // Rotate tile layer to match canvas course-up rotation
-  // Canvas rotates world coords by +heading so north-up becomes course-up
-  // Tile layer needs same rotation: -heading degrees around dot
+  // Rotate tile layer. Scale by √2 so corners never show black at any angle
   var rotDeg = (S.courseUp && S.heading !== null) ? -S.heading : 0;
   tileLayer.style.transformOrigin = dotX + 'px ' + dotY + 'px';
-  tileLayer.style.transform = 'rotate(' + rotDeg + 'deg)';
+  tileLayer.style.transform = 'rotate(' + rotDeg + 'deg) scale(1.42)';
 }
 
 function drawTiles(sx, sy) {
@@ -940,18 +938,28 @@ function onTS(e) {
 }
 function onTM(e) {
   e.preventDefault();
-  if (e.touches.length===1 && lt && !S.courseUp) {
-    var dpr=window.devicePixelRatio||1;
-    S.camMX -= (e.touches[0].clientX-lt.x)/S.scale;
-    S.camMY += (e.touches[0].clientY-lt.y)/S.scale;
-    lt={x:e.touches[0].clientX,y:e.touches[0].clientY};
-    setFollow(false); draw();
+  if (e.touches.length===1 && lt) {
+    var dx = e.touches[0].clientX - lt.x;
+    var dy = e.touches[0].clientY - lt.y;
+    lt = {x:e.touches[0].clientX, y:e.touches[0].clientY};
+    if (S.courseUp && S.heading !== null) {
+      // Tile layer is rotated by -heading, so screen pan needs to be
+      // unrotated by -heading to get north-up world offset
+      var rad = -S.heading * Math.PI / 180;
+      var cos = Math.cos(rad), sin = Math.sin(rad);
+      S.camMX -= (dx * cos - dy * sin) / S.scale;
+      S.camMY -= (dx * sin + dy * cos) / S.scale;
+    } else {
+      S.camMX -= dx / S.scale;
+      S.camMY += dy / S.scale;
+    }
+    setFollow(false);
+    updateTiles(); draw();
   } else if (e.touches.length===2 && pd) {
     var d = tdist(e.touches);
-    var newScale = Math.max(0.5, Math.min(40, S.scale * d / pd));
-    S.scale = newScale;
+    S.scale = Math.max(0.5, Math.min(40, S.scale * d / pd));
     S.tileZoom = scaleToZoom(S.scale);
-    pd = d; draw();
+    pd = d; updateTiles(); draw();
   }
 }
 function tdist(t){var dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
@@ -1034,7 +1042,7 @@ function onPos(p) {
     else {
       var diff=hdg-S.heading;
       if(diff>180)diff-=360; if(diff<-180)diff+=360;
-      S.heading=(S.heading+diff*0.25+360)%360;
+      S.heading=(S.heading+diff*0.5+360)%360;
     }
     var mh=document.getElementById('mHead'); if(mh) mh.textContent=Math.round(S.heading);
   }
@@ -1074,8 +1082,8 @@ function draw() {
 
   var dotX = W / 2;
   var dotY = S.courseUp ? H * 0.68 : H / 2;
-  var refMX = (S.courseUp || S.following) ? S.curMX : S.camMX;
-  var refMY = (S.courseUp || S.following) ? S.curMY : S.camMY;
+  var refMX = S.following ? S.curMX : S.camMX;
+  var refMY = S.following ? S.curMY : S.camMY;
 
   // Simple north-up projection (no rotation in math)
   function sx(mx, my) { return dotX + (mx - refMX) * sc; }
