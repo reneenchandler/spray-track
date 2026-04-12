@@ -827,14 +827,17 @@ function updateTiles() {
   var zoom = S.tileZoom;
   var mpp  = getTileMetersPerPixel(S.origin.lat, zoom);
   var dpr  = window.devicePixelRatio || 1;
-  // Tile size in CSS pixels (not canvas pixels)
-  var tileSizePx = 256 * mpp * S.scale;
 
-  var W = cv.width / dpr, H = cv.height / dpr;
-
-  // Dot position in CSS pixels
+  // CSS pixel dimensions
+  var W = cv.width / dpr;
+  var H = cv.height / dpr;
   var dotX = W / 2;
   var dotY = S.courseUp ? H * 0.68 : H / 2;
+
+  // Tile size in CSS pixels (S.scale is meters per CSS pixel... actually S.scale is meters per logical pixel)
+  // mpp = meters per tile pixel (256px tile)
+  // S.scale = canvas pixels per meter → CSS pixels per meter = S.scale (since canvas is scaled by DPR internally)
+  var tileSizePx = 256 * mpp * S.scale;
 
   // Current position in fractional tile coords
   var n = Math.pow(2, zoom);
@@ -847,22 +850,23 @@ function updateTiles() {
   var cTX = Math.floor(fracTileX);
   var cTY = Math.floor(fracTileY);
 
-  // Sub-tile offset of current position within its tile
+  // Sub-tile offset: where within the center tile is our current position
   var subX = fracTileX - cTX;
   var subY = fracTileY - cTY;
 
-  // Screen position of center tile's top-left corner
+  // The center tile's top-left is at dotX - subX*tileSizePx, dotY - subY*tileSizePx
   var originX = dotX - subX * tileSizePx;
   var originY = dotY - subY * tileSizePx;
 
-  var diagonal = Math.sqrt(W*W + H*H);
+  // Load enough tiles to cover screen diagonal at any rotation
+  var diagonal = Math.sqrt(W * W + H * H);
   var buf = Math.ceil(diagonal / tileSizePx / 2) + 2;
 
   for (var tx = cTX - buf; tx <= cTX + buf; tx++) {
     for (var ty = cTY - buf; ty <= cTY + buf; ty++) {
-      var key = zoom+'/'+ty+'/'+tx;
       var img = document.createElement('img');
-      img.src = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/'+key;
+      img.src = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/'
+                + zoom + '/' + ty + '/' + tx;
       img.style.left   = (originX + (tx - cTX) * tileSizePx) + 'px';
       img.style.top    = (originY + (ty - cTY) * tileSizePx) + 'px';
       img.style.width  = tileSizePx + 'px';
@@ -872,7 +876,9 @@ function updateTiles() {
     }
   }
 
-  // Apply rotation to tileLayer to match canvas course-up
+  // Rotate tile layer to match canvas course-up rotation
+  // Canvas rotates world coords by +heading so north-up becomes course-up
+  // Tile layer needs same rotation: -heading degrees around dot
   var rotDeg = (S.courseUp && S.heading !== null) ? -S.heading : 0;
   tileLayer.style.transformOrigin = dotX + 'px ' + dotY + 'px';
   tileLayer.style.transform = 'rotate(' + rotDeg + 'deg)';
@@ -1031,14 +1037,6 @@ function onPos(p) {
       S.heading=(S.heading+diff*0.25+360)%360;
     }
     var mh=document.getElementById('mHead'); if(mh) mh.textContent=Math.round(S.heading);
-    // Rotate tile layer smoothly with heading
-    if (S.courseUp) {
-      var tl=document.getElementById('tileLayer');
-      var dpr2=window.devicePixelRatio||1;
-      var dotX2=cv.width/dpr2/2, dotY2=cv.height/dpr2*0.68;
-      tl.style.transformOrigin=dotX2+'px '+dotY2+'px';
-      tl.style.transform='rotate('+(-S.heading)+'deg)';
-    }
   }
   if (S.recording && spd != null && spd > 0.5) {  // must be > ~1.1 mph
     var minDist = S.curPass.length < 3 ? 5 : 3;    // stricter at start to kill initial drift
@@ -1074,94 +1072,84 @@ function draw() {
   var W=cv.width, H=cv.height, dpr=window.devicePixelRatio||1, sc=S.scale*dpr;
   ctx.clearRect(0,0,W,H);
 
-  var dotX=W/2, dotY=S.courseUp?H*0.68:H/2;
-  var refMX=(S.courseUp||S.following)?S.curMX:S.camMX;
-  var refMY=(S.courseUp||S.following)?S.curMY:S.camMY;
-  var rot=(S.courseUp&&S.heading!==null)?(S.heading*Math.PI/180):0;
-  var cosR=Math.cos(rot), sinR=Math.sin(rot);
+  var dotX = W / 2;
+  var dotY = S.courseUp ? H * 0.68 : H / 2;
+  var refMX = (S.courseUp || S.following) ? S.curMX : S.camMX;
+  var refMY = (S.courseUp || S.following) ? S.curMY : S.camMY;
 
-  function sx(mx,my){ var dx=mx-refMX,dy=my-refMY; return dotX+(dx*cosR+dy*sinR)*sc; }
-  function sy(mx,my){ var dx=mx-refMX,dy=my-refMY; return dotY-(dy*cosR-dx*sinR)*sc; }
+  // Simple north-up projection (no rotation in math)
+  function sx(mx, my) { return dotX + (mx - refMX) * sc; }
+  function sy(mx, my) { return dotY - (my - refMY) * sc; }
 
-  var swM=S.swathFt*0.3048;
+  // Rotate canvas around dot to achieve course-up
+  ctx.save();
+  if (S.courseUp && S.heading !== null) {
+    ctx.translate(dotX, dotY);
+    ctx.rotate(-S.heading * Math.PI / 180);
+    ctx.translate(-dotX, -dotY);
+  }
 
-  // ── Satellite tiles (drawn on canvas, same coords as everything else) ──
-  drawTiles(sx, sy);
+  var swM = S.swathFt * 0.3048;
 
-  // Active field boundary
-  if (S.activeFieldIdx>=0 && S.fields[S.activeFieldIdx]) {
+  // Field boundary
+  if (S.activeFieldIdx >= 0 && S.fields[S.activeFieldIdx]) {
     drawFieldBoundary(S.fields[S.activeFieldIdx], sx, sy);
   }
-
   // AB Line
-  if (S.abLine && S.abLine.bx!==null) {
+  if (S.abLine && S.abLine.bx !== null) {
     drawABLine(sx, sy, W, H, dpr);
   }
-
   // Completed passes
-  for (var i=0;i<S.passes.length;i++){ drawPass(S.passes[i].pts,swM,sx,sy,false,S.passes[i].loop); }
+  for (var i = 0; i < S.passes.length; i++) {
+    drawPass(S.passes[i].pts, swM, sx, sy, false, S.passes[i].loop);
+  }
   // Ghost line
-  if (S.passes.length>0&&!S.recording) drawGhost(swM,sx,sy);
+  if (S.passes.length > 0 && !S.recording) drawGhost(swM, sx, sy);
   // Current pass
-  if (S.curPass.length>1) drawPass(S.curPass,swM,sx,sy,true,S.loopMode);
+  if (S.curPass.length > 1) drawPass(S.curPass, swM, sx, sy, true, S.loopMode);
 
-  // Tractor arrow — points in direction of travel
+  ctx.restore(); // end rotation
+
+  // Tractor arrow — drawn AFTER restore so it's always upright
   if (S.gpsReady) {
-    var size = 28 * dpr; // half-length of arrow
-
-    // In course-up: arrow always points straight up (heading=up by definition)
-    // In north-up: rotate to actual heading
+    var size = 28 * dpr;
+    // In course-up: always points up. In north-up: rotates to heading
     var arrowAngle = S.courseUp
       ? -Math.PI / 2
       : (S.heading !== null ? (S.heading - 90) * Math.PI / 180 : -Math.PI / 2);
 
     ctx.save();
     ctx.translate(dotX, dotY);
-    ctx.rotate(arrowAngle + Math.PI / 2); // rotate so tip points in travel direction
+    ctx.rotate(arrowAngle + Math.PI / 2);
 
     var color = S.recording ? '#FF3B30' : '#FFE600';
-
-    // Glow halo
     ctx.beginPath();
     ctx.arc(0, 0, size * 1.4, 0, Math.PI * 2);
-    ctx.fillStyle = S.recording ? 'rgba(255,59,48,0.15)' : 'rgba(57,255,20,0.12)';
+    ctx.fillStyle = S.recording ? 'rgba(255,59,48,0.15)' : 'rgba(255,230,0,0.12)';
     ctx.fill();
-
-    // Arrow/chevron shape — tip points UP (negative Y)
-    // Tip at top, two rear corners, notched tail
-    var tip  = { x: 0,          y: -size };
-    var rr   = { x:  size*0.55, y:  size*0.55 };
-    var rl   = { x: -size*0.55, y:  size*0.55 };
-    var notch = { x: 0,         y:  size*0.2 };  // center notch
 
     ctx.beginPath();
-    ctx.moveTo(tip.x,   tip.y);
-    ctx.lineTo(rr.x,    rr.y);
-    ctx.lineTo(notch.x, notch.y);
-    ctx.lineTo(rl.x,    rl.y);
+    ctx.moveTo(0, -size);
+    ctx.lineTo(size * 0.55, size * 0.55);
+    ctx.lineTo(0, size * 0.2);
+    ctx.lineTo(-size * 0.55, size * 0.55);
     ctx.closePath();
-
     ctx.fillStyle = color;
     ctx.fill();
-
-    // White outline
-    ctx.strokeStyle = '#ffffff';
+    ctx.strokeStyle = '#fff';
     ctx.lineWidth = 2.5 * dpr;
     ctx.stroke();
 
-    // Dark center dot for precision reference
     ctx.beginPath();
     ctx.arc(0, 0, 3 * dpr, 0, Math.PI * 2);
     ctx.fillStyle = '#000';
     ctx.fill();
-
     ctx.restore();
   }
 
-  // North/heading compass — always shown when heading known
-  if (S.heading !== null) drawNorth(W,H,dpr);
-  // Scale bar
-  drawScaleBar(W,H,dpr,sc);
+  // Compass and scale bar — always unrotated
+  if (S.heading !== null) drawNorth(W, H, dpr);
+  drawScaleBar(W, H, dpr, sc);
 }
 
 function drawFieldBoundary(field, sx, sy) {
