@@ -832,8 +832,12 @@ function updateTiles() {
   var centerMX = S.courseUp ? S.curMX : (S.following ? S.curMX : S.camMX);
   var centerMY = S.courseUp ? S.curMY : (S.following ? S.curMY : S.camMY);
 
+  // Current position in fractional tile coords using Web Mercator
+  var n = Math.pow(2, zoom);
   var curLat = S.origin.lat + myToLat(centerMY);
   var curLon = S.origin.lon + mxToLon(centerMX);
+
+  // Web Mercator tile coordinates (same formula tiles use)
   var fracTileX = (curLon + 180) / 360 * n;
   var latR2 = curLat * Math.PI / 180;
   var fracTileY = (1 - Math.log(Math.tan(latR2) + 1/Math.cos(latR2)) / Math.PI) / 2 * n;
@@ -896,22 +900,40 @@ function drawTiles(sx, sy) {
 function getTileMetersPerPixel(lat, zoom) {
   return 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
 }
+
+// Web Mercator projection — matches ESRI/OSM tile coordinates exactly
+function latLonToMerc(lat, lon) {
+  var R = 6378137; // WGS84 equatorial radius
+  var x = R * lon * Math.PI / 180;
+  var y = R * Math.log(Math.tan(Math.PI/4 + lat * Math.PI / 360));
+  return { x: x, y: y };
+}
+
 function mxFromLonAbs(lon) {
   if (!S.origin) return 0;
-  var R = 6371000;
-  return R * (lon - S.origin.lon) * Math.PI / 180 * Math.cos(S.origin.lat * Math.PI / 180);
+  var R = 6378137;
+  var ox = R * S.origin.lon * Math.PI / 180;
+  var px = R * lon * Math.PI / 180;
+  return px - ox;
 }
 function myFromLatAbs(lat) {
   if (!S.origin) return 0;
-  return 6371000 * (lat - S.origin.lat) * Math.PI / 180;
+  var R = 6378137;
+  var oy = R * Math.log(Math.tan(Math.PI/4 + S.origin.lat * Math.PI / 360));
+  var py = R * Math.log(Math.tan(Math.PI/4 + lat * Math.PI / 360));
+  return py - oy;
 }
 function mxToLon(mx) {
   if (!S.origin) return 0;
-  var R = 6371000;
-  return mx / (R * Math.PI / 180 * Math.cos(S.origin.lat * Math.PI / 180));
+  var R = 6378137;
+  var ox = R * S.origin.lon * Math.PI / 180;
+  return (ox + mx) / R * 180 / Math.PI;
 }
 function myToLat(my) {
-  return my / 6371000 * 180 / Math.PI;
+  if (!S.origin) return 0;
+  var R = 6378137;
+  var oy = R * Math.log(Math.tan(Math.PI/4 + S.origin.lat * Math.PI / 360));
+  return (Math.atan(Math.exp((oy + my) / R)) - Math.PI/4) * 360 / Math.PI;
 }
 
 // ═══════════════════════════════════════════════════
@@ -1055,21 +1077,27 @@ function onPos(p) {
       tl.style.transform = 'rotate(' + (-S.heading) + 'deg) scale(1.42)';
     }
   }
-  if (S.recording && spd != null && spd > 0.5) {  // must be > ~1.1 mph
-    var minDist = S.curPass.length < 3 ? 5 : 3;    // stricter at start to kill initial drift
-    var ok = true;
-    if (S.curPass.length > 0) {
-      var last = S.curPass[S.curPass.length - 1];
-      var ddx = S.curMX - last.mx, ddy = S.curMY - last.my;
-      if (Math.sqrt(ddx*ddx + ddy*ddy) < minDist) ok = false;
+  if (S.recording) {
+    // Must be moving at least 1.5 mph AND GPS must report it as moving
+    var isMoving = (spd != null && spd > 0.67); // 0.67 m/s = 1.5 mph
+    if (isMoving) {
+      // Min distance = larger of 3m or half the GPS accuracy radius
+      // This prevents recording jitter when accuracy is poor
+      var minDist = Math.max(3, acc * 0.5);
+      var ok = true;
+      if (S.curPass.length > 0) {
+        var last = S.curPass[S.curPass.length - 1];
+        var ddx = S.curMX - last.mx, ddy = S.curMY - last.my;
+        if (Math.sqrt(ddx*ddx + ddy*ddy) < minDist) ok = false;
+      }
+      // Sanity check: ignore GPS jumps > 20m between points
+      if (ok && S.curPass.length > 0) {
+        var last2 = S.curPass[S.curPass.length - 1];
+        var jump = Math.sqrt(Math.pow(S.curMX-last2.mx,2) + Math.pow(S.curMY-last2.my,2));
+        if (jump > 20) ok = false;
+      }
+      if (ok) { S.curPass.push({mx:S.curMX, my:S.curMY}); calcArea(); }
     }
-    // Also sanity-check: point can't jump more than 30m from last point (GPS glitch)
-    if (S.curPass.length > 0) {
-      var last2 = S.curPass[S.curPass.length - 1];
-      var jump = Math.sqrt(Math.pow(S.curMX-last2.mx,2) + Math.pow(S.curMY-last2.my,2));
-      if (jump > 30) ok = false;
-    }
-    if (ok) { S.curPass.push({mx:S.curMX, my:S.curMY}); calcArea(); }
   }
   draw(); updateLightbar();
 }
