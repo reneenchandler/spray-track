@@ -671,7 +671,7 @@ var S = {
   currentJob: null,
   watchId: null,
   mapTiles: [],
-  tileZoom: 19
+  tileZoom: 17
 };
 var cv, ctx, lt=null, pd=null;
 
@@ -986,10 +986,9 @@ function onTM(e) {
 }
 function tdist(t){var dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
 function scaleToZoom(sc) {
-  // Pick zoom 1 level higher than math suggests to compensate for 1.42x CSS scale blur
   var target = 256 * sc * 156543 / 300;
   var z = Math.round(Math.log2(target)) + 1;
-  return Math.max(14, Math.min(20, z));
+  return Math.max(14, Math.min(18, z)); // cap at 18 — zoom 19 often has no data
 }
 
 // Map click — used for AB line setting
