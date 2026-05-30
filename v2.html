@@ -671,7 +671,7 @@ var S = {
   currentJob: null,
   watchId: null,
   mapTiles: [],
-  tileZoom: 17
+  tileZoom: 16
 };
 var cv, ctx, lt=null, pd=null;
 
@@ -878,8 +878,18 @@ function updateTiles() {
   for (var tx = cTX - buf; tx <= cTX + buf; tx++) {
     for (var ty = cTY - buf; ty <= cTY + buf; ty++) {
       var img = document.createElement('img');
-      img.src = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/'
-                + zoom + '/' + ty + '/' + tx;
+      var tileSrc = tileUrl(tx, ty, zoom);
+      img.src = tileSrc;
+      img.onerror = function() {
+        // Try one zoom level lower if this zoom has no data
+        if (zoom > 13) {
+          var lz = zoom - 1;
+          var ltx = Math.floor(tx / 2);
+          var lty = Math.floor(ty / 2);
+          this.onerror = null;
+          this.src = tileUrl(ltx, lty, lz);
+        }
+      };
       img.style.left   = (originX + (tx - cTX) * tileSizePx) + 'px';
       img.style.top    = (originY + (ty - cTY) * tileSizePx) + 'px';
       img.style.width  = tileSizePx + 'px';
@@ -999,7 +1009,12 @@ function tdist(t){var dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;
 function scaleToZoom(sc) {
   var target = 256 * sc * 156543 / 300;
   var z = Math.round(Math.log2(target)) + 1;
-  return Math.max(14, Math.min(18, z)); // cap at 18 — zoom 19 often has no data
+  return Math.max(13, Math.min(16, z));
+}
+
+function tileUrl(tx, ty, zoom) {
+  return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/'
+    + zoom + '/' + ty + '/' + tx;
 }
 
 // Map click — used for AB line setting
