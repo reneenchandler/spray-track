@@ -831,14 +831,12 @@ function updateTiles() {
   var centerMX = S.courseUp ? S.curMX : (S.following ? S.curMX : S.camMX);
   var centerMY = S.courseUp ? S.curMY : (S.following ? S.curMY : S.camMY);
 
-  // Convert current world position to lat/lon using Web Mercator
-  var R = 6378137;
-  var oxMeters = R * S.origin.lon * Math.PI / 180;
-  var oyMeters = R * Math.log(Math.tan(Math.PI/4 + S.origin.lat * Math.PI / 360));
-  var curLon = (oxMeters + centerMX) / R * 180 / Math.PI;
-  var curLat = (Math.atan(Math.exp((oyMeters + centerMY) / R)) - Math.PI/4) * 360 / Math.PI;
+  // Convert world position to lat/lon for tile coordinate calculation
+  var center = worldToLatLon(centerMX, centerMY);
+  var curLat = center.lat;
+  var curLon = center.lon;
 
-  // Web Mercator tile coordinates
+  // Tile coordinates (Web Mercator)
   var n = Math.pow(2, zoom);
   var fracTileX = (curLon + 180) / 360 * n;
   var latR2 = curLat * Math.PI / 180;
@@ -909,37 +907,27 @@ function latLonToMerc(lat, lon) {
 
 function mxFromLonAbs(lon) {
   if (!S.origin) return 0;
-  var R = 6378137;
-  var ox = R * S.origin.lon * Math.PI / 180;
-  var px = R * lon * Math.PI / 180;
-  return px - ox;
+  var R = 6371000;
+  return R * (lon - S.origin.lon) * Math.PI / 180 * Math.cos(S.origin.lat * Math.PI / 180);
 }
 function myFromLatAbs(lat) {
   if (!S.origin) return 0;
-  var R = 6378137;
-  var oy = R * Math.log(Math.tan(Math.PI/4 + S.origin.lat * Math.PI / 360));
-  var py = R * Math.log(Math.tan(Math.PI/4 + lat * Math.PI / 360));
-  return py - oy;
+  return 6371000 * (lat - S.origin.lat) * Math.PI / 180;
 }
 function mxToLon(mx) {
   if (!S.origin) return 0;
-  var R = 6378137;
-  var ox = R * S.origin.lon * Math.PI / 180;
-  return (ox + mx) / R * 180 / Math.PI;
+  var R = 6371000;
+  return mx / (R * Math.PI / 180 * Math.cos(S.origin.lat * Math.PI / 180));
 }
 function myToLat(my) {
-  if (!S.origin) return 0;
-  var R = 6378137;
-  var oy = R * Math.log(Math.tan(Math.PI/4 + S.origin.lat * Math.PI / 360));
-  return (Math.atan(Math.exp((oy + my) / R)) - Math.PI/4) * 360 / Math.PI;
+  return my / 6371000 * 180 / Math.PI;
 }
 
-// Standalone Web Mercator helpers (no origin needed) for tile math
-function latToMercY(lat) {
-  return 6378137 * Math.log(Math.tan(Math.PI/4 + lat * Math.PI / 360));
-}
-function mercYToLat(y) {
-  return (Math.atan(Math.exp(y / 6378137)) - Math.PI/4) * 360 / Math.PI;
+// Convert world coords (flat-earth meters) to absolute lat/lon for tile math
+function worldToLatLon(mx, my) {
+  var lon = S.origin.lon + mxToLon(mx);
+  var lat = S.origin.lat + myToLat(my);
+  return { lat: lat, lon: lon };
 }
 
 // ═══════════════════════════════════════════════════
