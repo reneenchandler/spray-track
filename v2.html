@@ -671,7 +671,7 @@ var S = {
   currentJob: null,
   watchId: null,
   mapTiles: [],
-  tileZoom: 16
+  tileZoom: 18
 };
 var cv, ctx, lt=null, pd=null;
 
@@ -854,12 +854,9 @@ function updateTiles() {
   var originX = dotX - subX * tileSizePx + layerOffX;
   var originY = dotY - subY * tileSizePx + layerOffY;
 
-  var SCALE_FACTOR = 1.42;
-  var maxDist = Math.sqrt(
-    Math.pow(Math.max(dotY, H - dotY), 2) +
-    Math.pow(Math.max(dotX, W - dotX), 2)
-  ) * SCALE_FACTOR;
-  var buf = Math.ceil(maxDist / tileSizePx) + 1;
+  // Buffer: cover full diagonal (worst case rotation) plus 2 extra tiles
+  var diagonal = Math.sqrt(W * W + H * H);
+  var buf = Math.ceil(diagonal / tileSizePx) + 2;
 
   for (var tx = cTX - buf; tx <= cTX + buf; tx++) {
     for (var ty = cTY - buf; ty <= cTY + buf; ty++) {
@@ -885,7 +882,8 @@ function updateTiles() {
   // Transform origin accounts for the layer's -50% offset
   var rotDeg = (S.courseUp && S.heading !== null) ? -S.heading : 0;
   tileLayer.style.transformOrigin = (dotX + layerOffX) + 'px ' + (dotY + layerOffY) + 'px';
-  tileLayer.style.transform = 'rotate(' + rotDeg + 'deg) scale(1.42)';
+  tileLayer.style.transform = 'rotate(' + rotDeg + 'deg)';
+  // No CSS scale — use larger tile buffer instead to avoid blurring
 }
 
 function drawTiles(sx, sy) {
@@ -981,8 +979,8 @@ function onTM(e) {
 function tdist(t){var dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
 function scaleToZoom(sc) {
   var target = 256 * sc * 156543 / 300;
-  var z = Math.round(Math.log2(target)) + 1;
-  return Math.max(13, Math.min(16, z));
+  var z = Math.round(Math.log2(target));
+  return Math.max(14, Math.min(18, z));
 }
 
 function tileUrl(tx, ty, zoom) {
