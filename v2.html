@@ -827,7 +827,6 @@ function updateTiles() {
   var tileSizePx = 256 * mpp * S.scale;
 
   // Current position in fractional tile coords
-  var n = Math.pow(2, zoom);
   // Always center on current position in course-up; use camera in north-up
   var centerMX = S.courseUp ? S.curMX : (S.following ? S.curMX : S.camMX);
   var centerMY = S.courseUp ? S.curMY : (S.following ? S.curMY : S.camMY);
@@ -848,54 +847,40 @@ function updateTiles() {
   var cTX = Math.floor(fracTileX);
   var cTY = Math.floor(fracTileY);
 
-  // Sub-tile offset: where within the center tile is our current position
   var subX = fracTileX - cTX;
   var subY = fracTileY - cTY;
 
-  // tileLayer is offset by -50% of mapWrap (W/2, H/2) due to extended positioning
-  // So add that offset to tile positions
   var layerOffX = W / 2;
   var layerOffY = H / 2;
 
-  // The center tile's top-left on screen, adjusted for layer offset
   var originX = dotX - subX * tileSizePx + layerOffX;
   var originY = dotY - subY * tileSizePx + layerOffY;
 
-  // Buffer must cover the scaled area from the dot (which is off-center at 68%)
-  // Worst case distances from dot to each corner, multiplied by scale factor
   var SCALE_FACTOR = 1.42;
-  var distTop    = dotY;
-  var distBottom = H - dotY;
-  var distLeft   = dotX;
-  var distRight  = W - dotX;
-  // Max distance from dot to any corner, scaled
   var maxDist = Math.sqrt(
-    Math.pow(Math.max(distTop, distBottom), 2) +
-    Math.pow(Math.max(distLeft, distRight), 2)
+    Math.pow(Math.max(dotY, H - dotY), 2) +
+    Math.pow(Math.max(dotX, W - dotX), 2)
   ) * SCALE_FACTOR;
   var buf = Math.ceil(maxDist / tileSizePx) + 1;
 
   for (var tx = cTX - buf; tx <= cTX + buf; tx++) {
     for (var ty = cTY - buf; ty <= cTY + buf; ty++) {
-      var img = document.createElement('img');
-      var tileSrc = tileUrl(tx, ty, zoom);
-      img.src = tileSrc;
-      img.onerror = function() {
-        // Try one zoom level lower if this zoom has no data
-        if (zoom > 13) {
-          var lz = zoom - 1;
-          var ltx = Math.floor(tx / 2);
-          var lty = Math.floor(ty / 2);
-          this.onerror = null;
-          this.src = tileUrl(ltx, lty, lz);
-        }
-      };
-      img.style.left   = (originX + (tx - cTX) * tileSizePx) + 'px';
-      img.style.top    = (originY + (ty - cTY) * tileSizePx) + 'px';
-      img.style.width  = tileSizePx + 'px';
-      img.style.height = tileSizePx + 'px';
-      img.draggable = false;
-      tileLayer.appendChild(img);
+      (function(tx, ty, zoom) {
+        var img = document.createElement('img');
+        img.src = tileUrl(tx, ty, zoom);
+        img.onerror = function() {
+          if (zoom > 13) {
+            this.onerror = null;
+            this.src = tileUrl(Math.floor(tx/2), Math.floor(ty/2), zoom-1);
+          }
+        };
+        img.style.left   = (originX + (tx - cTX) * tileSizePx) + 'px';
+        img.style.top    = (originY + (ty - cTY) * tileSizePx) + 'px';
+        img.style.width  = tileSizePx + 'px';
+        img.style.height = tileSizePx + 'px';
+        img.draggable = false;
+        tileLayer.appendChild(img);
+      })(tx, ty, zoom);
     }
   }
 
