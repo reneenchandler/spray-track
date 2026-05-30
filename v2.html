@@ -903,29 +903,42 @@ function latLonToMerc(lat, lon) {
   return { x: x, y: y };
 }
 
+// ── COORDINATE SYSTEM ──
+// World coords (mx, my) are Web Mercator meters.
+// This matches the tile coordinate system exactly so tiles and canvas align.
+
+function latLonToWorld(lat, lon) {
+  var R = 6378137;
+  var x = R * lon * Math.PI / 180;
+  var y = R * Math.log(Math.tan(Math.PI/4 + lat * Math.PI / 360));
+  return { mx: x, my: y };
+}
+
 function mxFromLonAbs(lon) {
   if (!S.origin) return 0;
-  var R = 6371000;
-  return R * (lon - S.origin.lon) * Math.PI / 180 * Math.cos(S.origin.lat * Math.PI / 180);
+  var R = 6378137;
+  var ox = R * S.origin.lon * Math.PI / 180;
+  return R * lon * Math.PI / 180 - ox;
 }
 function myFromLatAbs(lat) {
   if (!S.origin) return 0;
-  return 6371000 * (lat - S.origin.lat) * Math.PI / 180;
+  var R = 6378137;
+  var oy = R * Math.log(Math.tan(Math.PI/4 + S.origin.lat * Math.PI / 360));
+  return R * Math.log(Math.tan(Math.PI/4 + lat * Math.PI / 360)) - oy;
 }
 function mxToLon(mx) {
   if (!S.origin) return 0;
-  var R = 6371000;
-  return mx / (R * Math.PI / 180 * Math.cos(S.origin.lat * Math.PI / 180));
+  var R = 6378137;
+  return (R * S.origin.lon * Math.PI / 180 + mx) / R * 180 / Math.PI;
 }
 function myToLat(my) {
-  return my / 6371000 * 180 / Math.PI;
+  if (!S.origin) return 0;
+  var R = 6378137;
+  var oy = R * Math.log(Math.tan(Math.PI/4 + S.origin.lat * Math.PI / 360));
+  return (Math.atan(Math.exp((oy + my) / R)) - Math.PI/4) * 360 / Math.PI;
 }
-
-// Convert world coords (flat-earth meters) to absolute lat/lon for tile math
 function worldToLatLon(mx, my) {
-  var lon = S.origin.lon + mxToLon(mx);
-  var lat = S.origin.lat + myToLat(my);
-  return { lat: lat, lon: lon };
+  return { lat: myToLat(my), lon: mxToLon(mx) };
 }
 
 // ═══════════════════════════════════════════════════
