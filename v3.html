@@ -139,6 +139,7 @@ font-family:‘Courier New’,monospace; display:none;
 #resumeMeta { font-size:10px; letter-spacing:1px; color:#888; text-align:center; }
 .sdiv { font-size:10px; letter-spacing:3px; color:#888; }
 .snote { font-size:10px; color:#888; text-align:center; line-height:1.7; max-width:260px; }
+#demoBtn { width:100%; max-width:300px; background:transparent; border:1px solid #555; border-radius:8px; color:#aaa; font-size:12px; font-weight:700; letter-spacing:1px; padding:11px; cursor:pointer; font-family:'Courier New',monospace; }
 
 /* ── STATUS BAR ── */
 .statusBar {
@@ -487,6 +488,7 @@ font-family:‘Courier New’,monospace;
     </select>
   </div>
   <button id="goBtn">NEW SESSION →</button>
+  <button id="demoBtn">▶ DEMO DRIVE</button>
   <div class="sdiv" id="orDiv" style="display:none">── OR ──</div>
   <button id="resumeBtn">⟳ RESUME SESSION</button>
   <div id="resumeMeta"></div>
@@ -690,6 +692,7 @@ var S = {
   tileZoom: 19
 };
 var cv, ctx, lt=null, pd=null;
+var demoTimer = null;
 
 // ═══════════════════════════════════════════════════
 // STORAGE
@@ -746,7 +749,34 @@ function clearSave() { try { localStorage.removeItem(KEY); } catch(e){} }
     applySettings(); launch();
     renderFieldsList(); renderWorklog();
   });
+  document.getElementById('demoBtn').addEventListener('click', launchDemo);
 })();
+
+function launchDemo() {
+  var saved = load();
+  S.swathFt=parseFloat(document.getElementById('inSwath').value)||40;
+  S.units=document.getElementById('inUnits').value;
+  if (saved) { S.fields=saved.fields||[]; S.worklog=saved.worklog||[]; }
+  clearSave();
+  applySettings();
+  launch();
+  S.origin={lat:40.000000,lon:-96.000000};
+  S.curMX=0; S.curMY=0; S.camMX=0; S.camMY=0; S.gpsReady=true;
+  document.getElementById('gpsDot').className='dot on';
+  document.getElementById('gpsText').textContent='DEMO ±3m';
+  updateTiles(); draw();
+  if (demoTimer) clearInterval(demoTimer);
+  var step=0;
+  demoTimer=setInterval(function() {
+    var x=step*3.5;
+    var y=Math.sin(step/12)*2;
+    var heading=90 + Math.atan2((Math.sin((step+1)/12)-Math.sin(step/12))*2,3.5)*180/Math.PI;
+    onPos({coords:{latitude:myToLat(y),longitude:mxToLon(x),speed:3.5,heading:heading,accuracy:3}});
+    step++;
+  }, 750);
+  document.getElementById('recBtn').click();
+  toast('DEMO DRIVE RECORDING');
+}
 
 function applySettings() {
   var sd = document.getElementById('swathDisplay');
@@ -844,8 +874,8 @@ function updateTiles() {
 
   // Current position in fractional tile coords
   var n = Math.pow(2, zoom);
-  var curLat = S.origin.lat + myToLat(S.curMY);
-  var curLon = S.origin.lon + mxToLon(S.curMX);
+  var curLat = myToLat(S.curMY);
+  var curLon = mxToLon(S.curMX);
   var fracTileX = (curLon + 180) / 360 * n;
   var latR2 = curLat * Math.PI / 180;
   var fracTileY = (1 - Math.log(Math.tan(latR2) + 1/Math.cos(latR2)) / Math.PI) / 2 * n;
@@ -897,7 +927,7 @@ function updateTiles() {
   // Transform origin accounts for the layer's -50% offset
   var rotDeg = (S.courseUp && S.heading !== null) ? -S.heading : 0;
   tileLayer.style.transformOrigin = (dotX + layerOffX) + 'px ' + (dotY + layerOffY) + 'px';
-  tileLayer.style.transform = 'rotate(' + rotDeg + 'deg) scale(1.42)';
+  tileLayer.style.transform = 'rotate(' + rotDeg + 'deg)';
 }
 
 function drawTiles(sx, sy) {
@@ -920,10 +950,11 @@ function myFromLatAbs(lat) {
 function mxToLon(mx) {
   if (!S.origin) return 0;
   var R = 6371000;
-  return mx / (R * Math.PI / 180 * Math.cos(S.origin.lat * Math.PI / 180));
+  return S.origin.lon + mx / (R * Math.PI / 180 * Math.cos(S.origin.lat * Math.PI / 180));
 }
 function myToLat(my) {
-  return my / 6371000 * 180 / Math.PI;
+  if (!S.origin) return 0;
+  return S.origin.lat + my / 6371000 * 180 / Math.PI;
 }
 
 // ═══════════════════════════════════════════════════
@@ -982,9 +1013,8 @@ function onTM(e) {
 }
 function tdist(t){var dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
 function scaleToZoom(sc) {
-  // Pick zoom 1 level higher than math suggests to compensate for 1.42x CSS scale blur
   var target = 256 * sc * 156543 / 300;
-  var z = Math.round(Math.log2(target)) + 1;
+  var z = Math.round(Math.log2(target));
   return Math.max(14, Math.min(20, z));
 }
 
@@ -1039,13 +1069,24 @@ function startGPS() {
 function onPos(p) {
   var lat=p.coords.latitude, lon=p.coords.longitude;
   var spd=p.coords.speed, hdg=p.coords.heading, acc=p.coords.accuracy;
+  if (!isFinite(acc)) acc=25;
+  if (acc > 30 && S.gpsReady) return;
   if (!S.origin) {
     S.origin={lat:lat,lon:lon}; S.gpsReady=true;
     document.getElementById('gpsDot').className='dot on';
     updateTiles();
   }
-  document.getElementById('gpsText').textContent='GPS ±'+Math.round(acc)+'ft';
-  S.curMX=mxFromLonAbs(lon); S.curMY=myFromLatAbs(lat);
+  document.getElementById('gpsText').textContent='GPS ±'+Math.round(acc*3.28084)+'ft';
+  var nextMX=mxFromLonAbs(lon), nextMY=myFromLatAbs(lat);
+  if (S.gpsReady && S.curMX !== 0 && S.curMY !== 0) {
+    var jump=Math.hypot(nextMX-S.curMX,nextMY-S.curMY);
+    var maxJump=Math.max(12, (spd || 0) * 2.5 + acc * 1.5);
+    if (jump > maxJump) return;
+    var weight=Math.max(0.2, Math.min(0.8, 8 / Math.max(acc, 3)));
+    nextMX=S.curMX+(nextMX-S.curMX)*weight;
+    nextMY=S.curMY+(nextMY-S.curMY)*weight;
+  }
+  S.curMX=nextMX; S.curMY=nextMY;
   if (S.following || S.courseUp) { S.camMX = S.curMX; S.camMY = S.curMY; updateTiles(); }
   var mph=(spd!=null&&spd>0)?spd*2.23694:0;
   document.getElementById('mSpeed').textContent=mph.toFixed(1);
@@ -1070,7 +1111,7 @@ function onPos(p) {
       var dotX2 = W2/2, dotY2 = H2*0.68;
       var tl = document.getElementById('tileLayer');
       tl.style.transformOrigin = (dotX2 + W2/2) + 'px ' + (dotY2 + H2/2) + 'px';
-      tl.style.transform = 'rotate(' + (-S.heading) + 'deg) scale(1.42)';
+      tl.style.transform = 'rotate(' + (-S.heading) + 'deg)';
     }
   }
   if (S.recording && spd != null && spd > 0.5) {  // must be > ~1.1 mph
