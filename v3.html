@@ -1091,27 +1091,17 @@ function onPos(p) {
   var mph=(spd!=null&&spd>0)?spd*2.23694:0;
   document.getElementById('mSpeed').textContent=mph.toFixed(1);
   if (hdg != null && hdg >= 0) {
-    // Accept heading at any speed — GPS heading is only valid when moving
-    // but we want it to update through turns even at low speed
-    if (S.heading === null) {
-      S.heading = hdg;
-    } else {
-      var diff = hdg - S.heading;
-      if (diff >  180) diff -= 360;
-      if (diff < -180) diff += 360;
-      // Fast response: 0.7 factor so arrow snaps quickly through turns
-      S.heading = (S.heading + diff * 0.7 + 360) % 360;
-    }
+    // Use raw GPS heading directly — smoothing causes the canvas rotation
+    // to lag behind actual travel direction, making the arrow appear to drift
+    // off the recorded pass line at low speeds. Raw heading from the GPS chip
+    // is already filtered hardware-side and is accurate enough to use directly.
+    S.heading = hdg;
     var mh = document.getElementById('mHead');
     if (mh) mh.textContent = Math.round(S.heading);
     // Update tile rotation immediately on heading change
+    // Heading changed — let updateTiles handle the full tile transform consistently
     if (S.courseUp && cv) {
-      var dpr2 = window.devicePixelRatio || 1;
-      var W2 = cv.width / dpr2, H2 = cv.height / dpr2;
-      var dotX2 = W2/2, dotY2 = H2*0.68;
-      var tl = document.getElementById('tileLayer');
-      tl.style.transformOrigin = (dotX2 + W2/2) + 'px ' + (dotY2 + H2/2) + 'px';
-      tl.style.transform = 'rotate(' + (-S.heading) + 'deg)';
+      updateTiles();
     }
   }
   if (S.recording && spd != null && spd > 0.5) {  // must be > ~1.1 mph
