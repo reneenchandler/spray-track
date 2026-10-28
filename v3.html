@@ -1082,9 +1082,9 @@ function onPos(p) {
     var jump=Math.hypot(nextMX-S.curMX,nextMY-S.curMY);
     var maxJump=Math.max(12, (spd || 0) * 2.5 + acc * 1.5);
     if (jump > maxJump) return;
-    var weight=Math.max(0.2, Math.min(0.8, 8 / Math.max(acc, 3)));
-    nextMX=S.curMX+(nextMX-S.curMX)*weight;
-    nextMY=S.curMY+(nextMY-S.curMY)*weight;
+    // Use raw GPS position directly — smoothing caused the position to lag
+    // behind actual location through turns, making the pass line drift off
+    // the satellite imagery. The jump filter above already rejects glitches.
   }
   S.curMX=nextMX; S.curMY=nextMY;
   if (S.following || S.courseUp) { S.camMX = S.curMX; S.camMY = S.curMY; updateTiles(); }
